@@ -833,6 +833,16 @@ function App() {
                     onAdd4thGen={(parent3rdId, newGChild) => handleAdd4thGen(selectedSibling.id, parent3rdId, newGChild)}
                     onRequestDeleteMember={(targetId, gen) => requestDeleteMember(selectedSibling.id, targetId, gen)}
                     t={t}
+                    lang={lang}
+                />
+            )}
+                    onClose={() => setSelectedSiblingId(null)}
+                    onUpdatePhoto={updatePersonPhoto}
+                    onUpdateProfile={handleUpdateMemberProfile}
+                    onAdd3rdGen={(newChild) => handleAdd3rdGen(selectedSibling.id, newChild)}
+                    onAdd4thGen={(parent3rdId, newGChild) => handleAdd4thGen(selectedSibling.id, parent3rdId, newGChild)}
+                    onRequestDeleteMember={(targetId, gen) => requestDeleteMember(selectedSibling.id, targetId, gen)}
+                    t={t}
                 />
             )}
 
