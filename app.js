@@ -330,20 +330,27 @@ function App() {
 
     // --- DECOUPLED COLLECTION WRITERS ---
     const handleAddRSVP = async (newRsvp) => {
+        const payload = {
+            name: String(newRsvp.name || '').trim(),
+            branch: String(newRsvp.branch || ''),
+            status: String(newRsvp.status || 'Attending'),
+            adults: Number(newRsvp.adults) || 1,
+            children: Number(newRsvp.children) || 0,
+            notes: String(newRsvp.notes || '').trim(),
+            createdAt: new Date().toISOString()
+        };
+
         if (window.db) {
             try {
-                await window.db.collection('rsvps').add({
-                    ...newRsvp,
-                    createdAt: new Date().toISOString()
-                });
-                showToast('RSVP submitted successfully!');
+                await window.db.collection('rsvps').add(payload);
+                showToast(lang === 'es' ? '¡RSVP confirmado exitosamente!' : 'RSVP submitted successfully!', 'success');
             } catch (err) {
                 console.error("RSVP write error:", err);
-                showToast('Failed to save RSVP to database.');
+                showToast(lang === 'es' ? 'Error al guardar RSVP en la base de datos.' : 'Failed to save RSVP to database.', 'error');
             }
         } else {
-            setRsvps(prev => [ { id: `rsvp-${Date.now()}`, ...newRsvp }, ...prev ]);
-            showToast('RSVP saved locally!');
+            setRsvps(prev => [ { id: `rsvp-${Date.now()}`, ...payload }, ...prev ]);
+            showToast('RSVP saved locally!', 'success');
         }
     };
 
