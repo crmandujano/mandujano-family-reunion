@@ -125,7 +125,7 @@ window.TRANSLATIONS = {
         sisterWing: "5 Hermanas",
         brotherWing: "5 Hermanos",
         exploreBranch: "Explorar Rama",
-        spouse: "Cónyuge",
+        spouse: "Cónyuge / Pareja",
         noSpouse: "Sin cónyuge registrado",
         childrenCount: "Hijos (3ra Gen)",
         bisnietosCount: "Bisnietos (4ta Gen)",
