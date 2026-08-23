@@ -21,7 +21,16 @@ function App() {
     const [searchQuery, setSearchQuery] = useState('');
     const [toastState, setToastState] = useState(null); // { message, type: 'success' | 'error' }
     const [isSyncing, setIsSyncing] = useState(false);
+    const mainContentRef = useRef(null);
 
+    const handleTabChange = (tabKey) => {
+        setActiveTab(tabKey);
+        if (window.innerWidth < 1024 && mainContentRef.current) {
+            setTimeout(() => {
+                mainContentRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+    };
     // Admin Security Passphrase State
     const [adminModalState, setAdminModalState] = useState({ isOpen: false, siblingId: null, targetId: null, gen: null });
     const [inputPin, setInputPin] = useState('');
