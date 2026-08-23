@@ -532,7 +532,86 @@ function App() {
                         {/* Navigation Tabs (7 Tabs) */}
                         <div className="flex items-center flex-wrap justify-center bg-slate-900/80 p-1.5 rounded-xl border border-tropical-700/50 gap-1 shadow-inner">
                             <button 
-                                onClick={() => handleTabChange('tree', 'resort', 'directory', 'rsvp', 'memory', 'schedule', 'merch')}
+                                {/* Navigation Tabs (7 Tabs) */}
+                        <div className="flex items-center flex-wrap justify-center bg-slate-900/80 p-1.5 rounded-xl border border-tropical-700/50 gap-1 shadow-inner">
+                            <button 
+                                onClick={() => handleTabChange('tree')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'tree' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-sitemap"></i>
+                                <span>{t.tabTree}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('resort')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'resort' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-umbrella-beach text-amber-400"></i>
+                                <span>{t.tabResort}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('directory')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'directory' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-address-book"></i>
+                                <span>{t.tabDirectory}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('rsvp')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'rsvp' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-envelope-open-text text-amber-400"></i>
+                                <span>{t.tabRsvp}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('memory')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'memory' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-images text-pink-400"></i>
+                                <span>{t.tabMemory}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('schedule')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'schedule' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-calendar-days text-amber-300"></i>
+                                <span>{t.tabSchedule}</span>
+                            </button>
+                            <button 
+                                onClick={() => handleTabChange('merch')}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                    activeTab === 'merch' 
+                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
+                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
+                                }`}
+                            >
+                                <i className="fa-solid fa-shirt text-emerald-400"></i>
+                                <span>{t.tabMerch}</span>
+                            </button>
+                        </div>
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                     activeTab === 'tree' 
                                         ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
