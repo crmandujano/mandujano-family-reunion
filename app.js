@@ -1066,10 +1066,10 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
         ? 'bg-rose-100 text-rose-800 border-rose-200' 
         : 'bg-blue-100 text-blue-800 border-blue-200';
 
-    return (
-        <div className="bg-white border border-slate-200 hover:border-tropical-500 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex items-center justify-between gap-4 card-glow group">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-                <div className={`w-8 h-8 rounded-full border font-bold text-xs flex items-center justify-center shrink-0 ${badgeColor}`}>
+return (
+        <div className="bg-white border border-slate-200 hover:border-tropical-500 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 card-glow group">
+            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border font-bold text-xs flex items-center justify-center shrink-0 ${badgeColor}`}>
                     #{sibling.order}
                 </div>
 
@@ -1080,16 +1080,16 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
                     gender={type === 'sister' ? 'female' : 'male'}
                 />
 
-                <div>
-                    <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2">
-                        <span>{sibling.name}</span>
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2 truncate">
+                        <span className="truncate">{sibling.name}</span>
                         {sibling.whatsapp && (
                             <a 
                                 href={`https://wa.me/${sibling.whatsapp.replace(/[^0-9]/g, '')}`} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                                 title={t.whatsappContact}
-                                className="text-emerald-500 hover:text-emerald-600 text-sm"
+                                className="text-emerald-500 hover:text-emerald-600 text-sm shrink-0"
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <i className="fa-brands fa-whatsapp"></i>
@@ -1097,15 +1097,15 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
                         )}
                     </h4>
                     {sibling.spouse ? (
-                        <div className="flex items-center space-x-2 text-xs text-slate-500 mt-0.5">
-                            <i className="fa-solid fa-heart text-rose-400 text-[10px]"></i>
-                            <span>{t.spouse}: <strong>{sibling.spouse}</strong></span>
+                        <div className="flex items-center space-x-1.5 text-xs text-slate-500 mt-0.5 truncate">
+                            <i className="fa-solid fa-heart text-rose-400 text-[10px] shrink-0"></i>
+                            <span className="truncate">{t.spouse}: <strong>{sibling.spouse}</strong></span>
                         </div>
                     ) : (
-                        <span className="text-[11px] text-slate-400 italic">{t.noSpouse}</span>
+                        <span className="text-[11px] text-slate-400 italic block">{t.noSpouse}</span>
                     )}
 
-                    <div className="flex items-center space-x-2 mt-1.5">
+                    <div className="flex items-center flex-wrap gap-1.5 mt-1.5">
                         <span className="text-[10px] font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md border border-slate-200">
                             <i className="fa-solid fa-child text-tropical-600 mr-1"></i>
                             {gen3Count} {t.childrenCount}
@@ -1122,7 +1122,7 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
 
             <button 
                 onClick={() => onSelectSibling(sibling.id)}
-                className="shrink-0 bg-tropical-50 hover:bg-tropical-500 text-tropical-700 hover:text-white px-3 py-2 rounded-xl text-xs font-semibold border border-tropical-200 hover:border-tropical-500 transition flex items-center gap-1.5 shadow-sm"
+                className="w-full sm:w-auto shrink-0 bg-tropical-50 hover:bg-tropical-500 text-tropical-700 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold border border-tropical-200 hover:border-tropical-500 transition flex items-center justify-center gap-1.5 shadow-sm"
             >
                 <span>{t.exploreBranch}</span>
                 <i className="fa-solid fa-chevron-right text-[10px]"></i>
