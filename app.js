@@ -532,7 +532,7 @@ function App() {
                         {/* Navigation Tabs (7 Tabs) */}
                         <div className="flex items-center flex-wrap justify-center bg-slate-900/80 p-1.5 rounded-xl border border-tropical-700/50 gap-1 shadow-inner">
                             <button 
-                                onClick={() => setActiveTab('tree')}
+                                onClick={() => handleTabChange('tree', 'resort', 'directory', 'rsvp', 'memory', 'schedule', 'merch')}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                     activeTab === 'tree' 
                                         ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
