@@ -1142,7 +1142,7 @@ return (
 }
 
 // --- BRANCH DRILL-DOWN MODAL ---
-function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile, onAdd3rdGen, onAdd4thGen, onRequestDeleteMember, t }) {
+function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile, onAdd3rdGen, onAdd4thGen, onRequestDeleteMember, t, lang }) {
     const [showAdd3rdModal, setShowAdd3rdModal] = useState(false);
     const [selectedParentFor4th, setSelectedParentFor4th] = useState(null);
 
