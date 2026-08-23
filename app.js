@@ -19,7 +19,7 @@ function App() {
     const [activeTab, setActiveTab] = useState('tree');
     const [selectedSiblingId, setSelectedSiblingId] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    const [toastMessage, setToastMessage] = useState(null);
+    const [toastState, setToastState] = useState(null); // { message, type: 'success' | 'error' }
     const [isSyncing, setIsSyncing] = useState(false);
 
     // Admin Security Passphrase State
@@ -27,9 +27,9 @@ function App() {
     const [inputPin, setInputPin] = useState('');
     const [adminConfigPin, setAdminConfigPin] = useState('Olga2027!');
 
-    const showToast = (msg) => {
-        setToastMessage(msg);
-        setTimeout(() => setToastMessage(null), 3500);
+    const showToast = (msg, type = 'success') => {
+    setToastState({ message: msg, type });
+    setTimeout(() => setToastState(null), 3500);
     };
 
     const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
@@ -423,10 +423,18 @@ function App() {
     return (
         <div className="min-h-screen flex flex-col">
             {/* TOAST NOTIFICATION */}
-            {toastMessage && (
-                <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border border-tropical-500 animate-bounce">
-                    <i className="fa-solid fa-circle-check text-emerald-400 text-lg"></i>
-                    <span className="font-medium text-sm">{toastMessage}</span>
+            {toastState && (
+                <div className={`fixed bottom-6 right-6 z-50 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 border animate-bounce ${
+                    toastState.type === 'error' 
+                        ? 'bg-rose-900 border-rose-500 text-rose-100' 
+                        : 'bg-slate-900 border-tropical-500 text-white'
+                }`}>
+                    <i className={`fa-solid ${
+                        toastState.type === 'error' 
+                            ? 'fa-circle-exclamation text-rose-400' 
+                            : 'fa-circle-check text-emerald-400'
+                    } text-lg`}></i>
+                    <span className="font-medium text-sm">{toastState.message}</span>
                 </div>
             )}
 
