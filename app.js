@@ -1239,13 +1239,22 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
     return (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in zoom-in duration-200">
-                <div className="bg-gradient-to-r from-caribbean-dark to-tropical-900 text-white p-6 relative">
-                    <button 
-                        onClick={onClose}
-                        className="absolute top-6 right-6 text-slate-400 hover:text-white bg-white/10 w-9 h-9 rounded-full flex items-center justify-center transition"
-                    >
-                        <i className="fa-solid fa-xmark text-lg"></i>
-                    </button>
+                <div className="bg-gradient-to-r from-caribbean-dark to-tropical-900 text-white p-5 sm:p-6 relative">
+                    <div className="flex items-center justify-between pb-3 mb-3 border-b border-white/10">
+                        <button 
+                            onClick={onClose}
+                            className="inline-flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-white/20 transition cursor-pointer"
+                        >
+                            <i className="fa-solid fa-arrow-left"></i>
+                            <span>{lang === 'es' ? '← Volver al Árbol' : '← Back to Family Tree'}</span>
+                        </button>
+                        <button 
+                            onClick={onClose}
+                            className="text-slate-400 hover:text-white bg-white/10 w-8 h-8 rounded-full flex items-center justify-center transition"
+                        >
+                            <i className="fa-solid fa-xmark text-base"></i>
+                        </button>
+                    </div>
                     <div className="flex items-center space-x-4">
                         <UniversalAvatar 
                             person={sibling} 
