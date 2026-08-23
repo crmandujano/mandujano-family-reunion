@@ -763,7 +763,7 @@ function App() {
             </header>
 
             {/* MAIN CONTENT AREA */}
-            <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <main ref={mainContentRef} className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {activeTab === 'tree' && (
                     <SymmetricalTreeView 
                         familyData={familyData} 
