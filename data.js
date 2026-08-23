@@ -22,7 +22,7 @@ window.TRANSLATIONS = {
         sisterWing: "5 Sisters (Las Hermanas)",
         brotherWing: "5 Brothers (Los Hermanos)",
         exploreBranch: "Explore Branch",
-        spspouse: "Spouse/Partner",
+        spouse: "Spouse/Partner",
         noSpouse: "No spouse listed",
         childrenCount: "Children (3rd Gen)",
         bisnietosCount: "Bisnietos (4th Gen)",
