@@ -31,14 +31,15 @@ function App() {
             }, 100);
         }
     };
+
     // Admin Security Passphrase State
     const [adminModalState, setAdminModalState] = useState({ isOpen: false, siblingId: null, targetId: null, gen: null });
     const [inputPin, setInputPin] = useState('');
     const [adminConfigPin, setAdminConfigPin] = useState('Olga2027!');
 
     const showToast = (msg, type = 'success') => {
-    setToastState({ message: msg, type });
-    setTimeout(() => setToastState(null), 3500);
+        setToastState({ message: msg, type });
+        setTimeout(() => setToastState(null), 3500);
     };
 
     const t = TRANSLATIONS[lang] || TRANSLATIONS.en;
@@ -142,12 +143,12 @@ function App() {
             } catch (err) {
                 console.error("Error saving tree:", err);
                 setIsSyncing(false);
-                showToast(lang === 'es' ? 'Error al guardar en la nube.' : 'Cloud save failed.');
+                showToast(lang === 'es' ? 'Error al guardar en la nube.' : 'Cloud save failed.', 'error');
             }
         }
     };
 
-    // Calculate Counts for Abuela Olga's Legacy Counter
+    // Calculate Counts for Abuela Olga's Living Legacy Counter
     const legacyCounts = useMemo(() => {
         let gen2Count = familyTree.sisters.length + familyTree.brothers.length;
         let gen3Count = 0;
@@ -208,7 +209,7 @@ function App() {
         }
 
         saveTreeToCloud(next);
-        showToast(lang === 'es' ? '¡Foto subida a la nube exitosamente!' : 'Photo uploaded to cloud successfully!');
+        showToast(lang === 'es' ? '¡Foto subida a la nube exitosamente!' : 'Photo uploaded to cloud successfully!', 'success');
     };
 
     // Inline Member Profile Attribute Update Handler
@@ -240,7 +241,7 @@ function App() {
         }
 
         saveTreeToCloud(next);
-        showToast(lang === 'es' ? '¡Perfil actualizado en la nube!' : 'Profile updated in cloud!');
+        showToast(lang === 'es' ? '¡Perfil actualizado en la nube!' : 'Profile updated in cloud!', 'success');
     };
 
     // Selected Sibling object for Branch Drill-Down Modal
@@ -273,7 +274,7 @@ function App() {
         };
         if (!findAndAdd(next.sisters)) findAndAdd(next.brothers);
         saveTreeToCloud(next);
-        showToast(`Added ${newChild.name} to 3rd Generation!`);
+        showToast(`Added ${newChild.name} to 3rd Generation!`, 'success');
     };
 
     // Add 4th Gen Great-Grandchild
@@ -301,7 +302,7 @@ function App() {
         };
         if (!findAndAdd(next.sisters)) findAndAdd(next.brothers);
         saveTreeToCloud(next);
-        showToast(`Added ${newGChild.name} to 4th Generation!`);
+        showToast(`Added ${newGChild.name} to 4th Generation!`, 'success');
     };
 
     // Admin Protected Deletion Handler
@@ -313,7 +314,7 @@ function App() {
     const confirmAdminPinAndDelete = (e) => {
         e.preventDefault();
         if (inputPin !== adminConfigPin && inputPin !== '1234') {
-            showToast(t.invalidPin);
+            showToast(t.invalidPin, 'error');
             return;
         }
 
@@ -334,7 +335,7 @@ function App() {
         }
         saveTreeToCloud(next);
         setAdminModalState({ isOpen: false, siblingId: null, targetId: null, gen: null });
-        showToast(lang === 'es' ? 'Miembro eliminado correctamente.' : 'Family member deleted successfully.');
+        showToast(lang === 'es' ? 'Miembro eliminado correctamente.' : 'Family member deleted successfully.', 'success');
     };
 
     // --- DECOUPLED COLLECTION WRITERS ---
@@ -374,14 +375,14 @@ function App() {
         if (window.db) {
             try {
                 await window.db.collection('messages').add(msgDoc);
-                showToast('Message posted to guestbook!');
+                showToast('Message posted to guestbook!', 'success');
             } catch (err) {
                 console.error("Message write error:", err);
-                showToast('Failed to post message.');
+                showToast('Failed to post message.', 'error');
             }
         } else {
             setMessages(prev => [ { id: `msg-${Date.now()}`, ...msgDoc }, ...prev ]);
-            showToast('Message posted locally!');
+            showToast('Message posted locally!', 'success');
         }
     };
 
@@ -410,14 +411,14 @@ function App() {
         if (window.db) {
             try {
                 await window.db.collection('memories').add(memDoc);
-                showToast('Memory photo added to Memory Lane!');
+                showToast('Memory photo added to Memory Lane!', 'success');
             } catch (err) {
                 console.error("Memory write error:", err);
-                showToast('Failed to save memory photo.');
+                showToast('Failed to save memory photo.', 'error');
             }
         } else {
             setMemories(prev => [ { id: `mem-${Date.now()}`, ...memDoc }, ...prev ]);
-            showToast('Memory photo saved locally!');
+            showToast('Memory photo saved locally!', 'success');
         }
     };
 
@@ -430,7 +431,7 @@ function App() {
                 sisters: INITIAL_FAMILY_DATA.sisters,
                 brothers: INITIAL_FAMILY_DATA.brothers
             });
-            showToast(lang === 'es' ? '¡Árbol familiar restaurado en la nube!' : 'Family tree restored to initial seed data in cloud!');
+            showToast(lang === 'es' ? '¡Árbol familiar restaurado en la nube!' : 'Family tree restored to initial seed data in cloud!', 'success');
         }
     };
 
@@ -532,9 +533,6 @@ function App() {
                         {/* Navigation Tabs (7 Tabs) */}
                         <div className="flex items-center flex-wrap justify-center bg-slate-900/80 p-1.5 rounded-xl border border-tropical-700/50 gap-1 shadow-inner">
                             <button 
-                                {/* Navigation Tabs (7 Tabs) */}
-                        <div className="flex items-center flex-wrap justify-center bg-slate-900/80 p-1.5 rounded-xl border border-tropical-700/50 gap-1 shadow-inner">
-                            <button 
                                 onClick={() => handleTabChange('tree')}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                     activeTab === 'tree' 
@@ -602,82 +600,6 @@ function App() {
                             </button>
                             <button 
                                 onClick={() => handleTabChange('merch')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'merch' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-shirt text-emerald-400"></i>
-                                <span>{t.tabMerch}</span>
-                            </button>
-                        </div>
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'tree' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-sitemap"></i>
-                                <span>{t.tabTree}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('resort')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'resort' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-umbrella-beach text-amber-400"></i>
-                                <span>{t.tabResort}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('directory')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'directory' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-address-book"></i>
-                                <span>{t.tabDirectory}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('rsvp')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'rsvp' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-envelope-open-text text-amber-400"></i>
-                                <span>{t.tabRsvp}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('memory')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'memory' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-images text-pink-400"></i>
-                                <span>{t.tabMemory}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('schedule')}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
-                                    activeTab === 'schedule' 
-                                        ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
-                                        : 'text-slate-300 hover:text-white hover:bg-white/5'
-                                }`}
-                            >
-                                <i className="fa-solid fa-calendar-days text-amber-300"></i>
-                                <span>{t.tabSchedule}</span>
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('merch')}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
                                     activeTab === 'merch' 
                                         ? 'bg-gradient-to-r from-tropical-600 to-tropical-500 text-white shadow-md' 
@@ -915,15 +837,6 @@ function App() {
                     lang={lang}
                 />
             )}
-                    onClose={() => setSelectedSiblingId(null)}
-                    onUpdatePhoto={updatePersonPhoto}
-                    onUpdateProfile={handleUpdateMemberProfile}
-                    onAdd3rdGen={(newChild) => handleAdd3rdGen(selectedSibling.id, newChild)}
-                    onAdd4thGen={(parent3rdId, newGChild) => handleAdd4thGen(selectedSibling.id, parent3rdId, newGChild)}
-                    onRequestDeleteMember={(targetId, gen) => requestDeleteMember(selectedSibling.id, targetId, gen)}
-                    t={t}
-                />
-            )}
 
             {/* FOOTER */}
             <footer className="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 text-center text-xs mt-12">
@@ -1155,7 +1068,7 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
         ? 'bg-rose-100 text-rose-800 border-rose-200' 
         : 'bg-blue-100 text-blue-800 border-blue-200';
 
-return (
+    return (
         <div className="bg-white border border-slate-200 hover:border-tropical-500 rounded-2xl p-4 shadow-sm hover:shadow-lg transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 card-glow group">
             <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                 <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border font-bold text-xs flex items-center justify-center shrink-0 ${badgeColor}`}>
@@ -2929,7 +2842,7 @@ function MerchView({ familyData, showToast, t }) {
         };
 
         setCart(prev => [...prev, cartItem]);
-        showToast(`Added ${cartItem.qty}x ${product.name} to order!`);
+        showToast(`Added ${cartItem.qty}x ${product.name} to order!`, 'success');
     };
 
     const removeFromCart = (cartId) => {
