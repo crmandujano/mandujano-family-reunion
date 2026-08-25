@@ -357,8 +357,8 @@ function App() {
                 // Background notification to your Gmail
                 if (window.emailjs) {
                     window.emailjs.send(
-                        "YOUR_SERVICE_ID",   // Replace with your Service ID
-                        "YOUR_TEMPLATE_ID",  // Replace with your Template ID
+                        "service_ii89aer",   // Replace with your Service ID
+                        "template_ardv9tr",  // Replace with your Template ID
                         {
                             from_name: payload.name,
                             branch: payload.branch,
