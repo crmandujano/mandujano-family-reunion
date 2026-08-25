@@ -350,17 +350,15 @@ function App() {
             createdAt: new Date().toISOString()
         };
 
-        if (window.db) {
+    if (window.db) {
             try {
                 await window.db.collection('rsvps').add(payload);
                 showToast(lang === 'es' ? '¡RSVP confirmado exitosamente!' : 'RSVP submitted successfully!', 'success');
             } catch (err) {
                 console.error("RSVP write error:", err);
-                showToast(lang === 'es' ? 'Error al guardar RSVP en la base de datos.' : 'Failed to save RSVP to database.', 'error');
+                const errMsg = err?.message || err?.code || 'Failed to save RSVP';
+                showToast(`DB Error: ${errMsg}`, 'error');
             }
-        } else {
-            setRsvps(prev => [ { id: `rsvp-${Date.now()}`, ...payload }, ...prev ]);
-            showToast('RSVP saved locally!', 'success');
         }
     };
 
