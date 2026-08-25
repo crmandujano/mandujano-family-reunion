@@ -57,6 +57,14 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
+    <!-- EmailJS SDK -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function() {
+            emailjs.init({ publicKey: "9_OZolVscxloEIF2d" });
+        })();
+    </script>
+
     <style>
         body {
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -92,23 +100,11 @@
             box-shadow: 0 12px 24px -6px rgba(13, 148, 136, 0.15);
         }
     </style>
-
-<!-- EmailJS SDK -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-    <script type="text/javascript">
-        (function() {
-            // Replace with your EmailJS Public Key
-            emailjs.init({ publicKey: "9_OZolVscxloEIF2d" });
-        })();
-    </script>
-
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800 antialiased selection:bg-tropical-500 selection:text-white bg-grid-pattern">
     <div id="root"></div>
 
-<!-- React & Babel CDNs remain in head -->
-
-    <!-- 1. Firebase SDKs (Compatibility Mode for Browser CDN) -->
+    <!-- 1. Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
@@ -125,17 +121,15 @@
             measurementId: "G-1TR7HC5ERK"
         };
 
-        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
         window.db = firebase.firestore();
         window.storage = firebase.storage();
     </script>
 
-    <!-- Data & Seed State -->
-    <script type="text/babel" src="data.js"></script>
+    <!-- 3. Data Dictionary & Initial State (Synchronous JS) -->
+    <script src="data.js"></script>
     
-    <!-- Application Logic & React Components -->
-    <script type="text/babel" src="app.js"></script>
-
+    <!-- 4. Application Logic & React Components (Compiled via Babel) -->
+    <script type="text/babel" data-presets="react" src="app.js"></script>
 </body>
 </html>
