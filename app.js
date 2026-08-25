@@ -1680,7 +1680,7 @@ function ResortCostEstimatorView({ familyData, t }) {
     const [adultCount, setAdultCount] = useState(2);
     const [childCount, setChildCount] = useState(1);
 
-    const PRICE_PER_ADULT = 550;
+    const PRICE_PER_ADULT = 565;
     const PRICE_PER_CHILD = 0;
 
     const allSiblings = useMemo(() => [...familyData.sisters, ...familyData.brothers], [familyData]);
