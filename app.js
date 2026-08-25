@@ -350,15 +350,15 @@ function App() {
             createdAt: new Date().toISOString()
         };
 
-    if (window.db) {
+        if (window.db) {
             try {
                 await window.db.collection('rsvps').add(payload);
 
-                // Background notification to your Gmail
+                // Background notification to your Gmail via EmailJS
                 if (window.emailjs) {
                     window.emailjs.send(
-                        "service_ii89aer",   // Replace with your Service ID
-                        "template_ardv9tr",  // Replace with your Template ID
+                        "service_ii89aer",
+                        "template_ardv9tr",
                         {
                             from_name: payload.name,
                             branch: payload.branch,
@@ -373,6 +373,13 @@ function App() {
 
                 showToast(lang === 'es' ? '¡RSVP confirmado exitosamente!' : 'RSVP submitted successfully!', 'success');
             } catch (err) {
+                console.error("RSVP write error:", err);
+                const errMsg = err?.message || err?.code || 'Failed to save RSVP';
+                showToast(`DB Error: ${errMsg}`, 'error');
+            }
+        } else {
+            setRsvps(prev => [ { id: `rsvp-${Date.now()}`, ...payload }, ...prev ]);
+            showToast('RSVP saved locally!', 'success');
         }
     };
 
