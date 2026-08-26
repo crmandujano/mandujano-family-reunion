@@ -469,6 +469,29 @@ function App() {
         }
     };
 
+    const handleSetAlbumCover = async (albumName, coverPhotoId) => {
+        if (!window.db) return;
+        try {
+            // Find all memories in this album and update cover flags
+            const albumMemories = memories.filter(m => m.album === albumName || m.year === albumName);
+            const batch = window.db.batch();
+
+            albumMemories.forEach(mem => {
+                const ref = window.db.collection('memories').doc(mem.id);
+                if (mem.id === coverPhotoId) {
+                    batch.update(ref, { isCover: true });
+                } else if (mem.isCover) {
+                    batch.update(ref, { isCover: false });
+                }
+            });
+
+            await batch.commit();
+            showToast(lang === 'es' ? 'Foto de portada actualizada.' : 'Album cover photo updated!', 'success');
+        } catch (err) {
+            console.error("Cover update error:", err);
+            showToast(lang === 'es' ? 'Error al actualizar portada.' : 'Failed to update album cover.', 'error');
+        }
+    };
     // Reset Data Back to Cloud Seed
     const handleResetData = () => {
         if (confirm(lang === 'es' ? '¿Restablecer datos del árbol familiar a la semilla inicial en la nube?' : 'Reset family tree data back to original cloud seed dataset?')) {
