@@ -2552,21 +2552,28 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
         }
     };
 
-    const reunionAlbumsMap = useMemo(() => {
+    const sortedReunionAlbums = useMemo(() => {
         const map = {};
         memories.filter(m => m.category === 'Reunions').forEach(item => {
             const albumKey = item.album || `${item.year || '2002'} Reunion`;
             if (!map[albumKey]) {
+                // Extract 4-digit year from the album name or fallback to item.year
+                const match = albumKey.match(/\b(19\d\d|20\d\d)\b/);
+                const extractedYear = match ? parseInt(match[0], 10) : parseInt(item.year || '2002', 10);
+
                 map[albumKey] = {
                     name: albumKey,
-                    year: item.year || '2002',
+                    year: item.year || (match ? match[0] : '2002'),
+                    numericYear: extractedYear,
                     coverPhoto: item.photo,
                     items: []
                 };
             }
             map[albumKey].items.push(item);
         });
-        return map;
+
+        // Sort ascending by year (2002 -> 2006 -> 2010 -> ...)
+        return Object.values(map).sort((a, b) => a.numericYear - b.numericYear);
     }, [memories]);
 
     return (
