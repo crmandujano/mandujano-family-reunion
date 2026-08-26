@@ -2432,83 +2432,124 @@ function RSVPMessageBoardView({ familyData, onAddRSVP, onAddMessage, onLikeMessa
 
 
 
-// --- MEMORY LANE VIEW WITH ALBUMS, LIGHTBOX & DELETE CAPABILITY ---
+// --- MEMORY LANE VIEW WITH MULTI-PHOTO BATCH UPLOAD ---
 function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedAlbum, setSelectedAlbum] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [previewPhoto, setPreviewPhoto] = useState(null);
 
     // Upload Form State
     const [memTitle, setMemTitle] = useState('');
-    const [memYear, setMemYear] = useState('2002');
+    const [memYear, setMemYear] = useState('2010');
     const [memCategory, setMemCategory] = useState('Reunions');
-    const [memAlbumName, setMemAlbumName] = useState('2002 First Reunion');
-    const [memPhoto, setMemPhoto] = useState('');
+    const [memAlbumName, setMemAlbumName] = useState('2010 - Third Reunion');
+    const [selectedFiles, setSelectedFiles] = useState([]); // Array of { file, previewUrl, uploadedUrl }
     const [memCaption, setMemCaption] = useState('');
     const [memSubmittedBy, setMemSubmittedBy] = useState('');
 
     const REUNION_ALBUMS = [
-        '2002 First Reunion (Telamar)',
-        '2006 Reunion',
-        '2012 Reunion',
-        '2018 Reunion',
+        '2002 - First Reunion (Telamar)',
+        '2006 - Second Reunion',
+        '2010 - Third Reunion',
+        '2014 - Fourth Reunion',
+        '2018 - Fifth Reunion',
         'Other Past Gatherings'
     ];
 
-    const handlePhotoUpload = async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
+    const handleFileSelection = (e) => {
+        const files = Array.from(e.target.files);
+        if (!files.length) return;
 
-        setUploading(true);
-        if (window.storage) {
-            try {
-                const storageRef = window.storage.ref(`memories/${Date.now()}_${file.name}`);
-                const snap = await storageRef.put(file);
-                const url = await snap.ref.getDownloadURL();
-                setMemPhoto(url);
-                setUploading(false);
-                return;
-            } catch (storageErr) {
-                console.warn("Storage upload failed, falling back to local base64:", storageErr);
-            }
-        }
+        const newEntries = files.map(file => ({
+            file,
+            previewUrl: URL.createObjectURL(file),
+            name: file.name
+        }));
 
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            setMemPhoto(ev.target.result);
-            setUploading(false);
-        };
-        reader.onerror = () => {
-            setUploading(false);
-            alert("Error reading photo file.");
-        };
-        reader.readAsDataURL(file);
+        setSelectedFiles(prev => [...prev, ...newEntries]);
     };
 
-    const submitMemory = (e) => {
+    const removeSelectedFile = (indexToRemove) => {
+        setSelectedFiles(prev => prev.filter((_, idx) => idx !== indexToRemove));
+    };
+
+    const submitBatchMemories = async (e) => {
         e.preventDefault();
-        if (!memTitle.trim() || !memPhoto) {
-            alert('Please provide a title and select a photo file.');
+        if (selectedFiles.length === 0) {
+            alert('Please select at least one photo.');
             return;
         }
 
-        onAddMemory({
-            title: memTitle,
-            year: memYear,
-            category: memCategory,
-            album: memCategory === 'Reunions' ? (memAlbumName || '2002 First Reunion (Telamar)') : null,
-            photo: memPhoto,
-            caption: memCaption,
-            submittedBy: memSubmittedBy || 'Family Member'
-        });
+        setUploading(true);
+        setUploadProgress(0);
 
-        setMemTitle('');
-        setMemPhoto('');
-        setMemCaption('');
-        setMemSubmittedBy('');
-        setShowUploadModal(false);
+        try {
+            const uploadedMemories = [];
+            const total = selectedFiles.length;
+
+            for (let i = 0; i < total; i++) {
+                const item = selectedFiles[i];
+                let finalUrl = item.previewUrl;
+
+                // 1. Upload to Firebase Storage if online
+                if (window.storage) {
+                    try {
+                        const storageRef = window.storage.ref(`memories/${Date.now()}_${i}_${item.file.name}`);
+                        const snap = await storageRef.put(item.file);
+                        finalUrl = await snap.ref.getDownloadURL();
+                    } catch (storageErr) {
+                        console.warn("Storage upload failed for item, using base64:", storageErr);
+                        finalUrl = await new Promise((resolve) => {
+                            const reader = new FileReader();
+                            reader.onload = (ev) => resolve(ev.target.result);
+                            reader.readAsDataURL(item.file);
+                        });
+                    }
+                } else {
+                    finalUrl = await new Promise((resolve) => {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => resolve(ev.target.result);
+                        reader.readAsDataURL(item.file);
+                    });
+                }
+
+                // Default title to form title or file name
+                const displayTitle = total === 1 
+                    ? (memTitle.trim() || item.name.replace(/\.[^/.]+$/, ''))
+                    : (memTitle.trim() ? `${memTitle.trim()} (${i + 1}/${total})` : item.name.replace(/\.[^/.]+$/, ''));
+
+                uploadedMemories.push({
+                    title: displayTitle,
+                    year: memYear,
+                    category: memCategory,
+                    album: memCategory === 'Reunions' ? (memAlbumName || '2010 - Third Reunion') : null,
+                    photo: finalUrl,
+                    caption: memCaption,
+                    submittedBy: memSubmittedBy || 'Family Member'
+                });
+
+                setUploadProgress(Math.round(((i + 1) / total) * 100));
+            }
+
+            await onAddMemory(uploadedMemories);
+
+            // Reset modal state
+            setSelectedFiles([]);
+            setMemTitle('');
+            setMemCaption('');
+            setMemSubmittedBy('');
+            setUploading(false);
+            setUploadProgress(0);
+            setShowUploadModal(false);
+
+        } catch (err) {
+            console.error("Batch upload failed:", err);
+            setUploading(false);
+            alert("Error during batch upload.");
+        }
     };
 
     const reunionAlbumsMap = useMemo(() => {
@@ -2548,12 +2589,15 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                         if (selectedAlbum) {
                             setMemCategory('Reunions');
                             setMemAlbumName(selectedAlbum);
+                            const yearMatch = selectedAlbum.match(/\b(19\d\d|20\d\d)\b/);
+                            if (yearMatch) setMemYear(yearMatch[0]);
                         }
+                        setSelectedFiles([]);
                         setShowUploadModal(true);
                     }}
                     className="shrink-0 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-bold px-5 py-3 rounded-2xl shadow-lg transition text-xs uppercase tracking-wider flex items-center gap-2"
                 >
-                    <i className="fa-solid fa-camera"></i> {selectedAlbum ? `Add Photo to ${selectedAlbum}` : (t.addMemoryBtn || "Add Photo")}
+                    <i className="fa-solid fa-cloud-arrow-up"></i> {selectedAlbum ? `Upload Photos to ${selectedAlbum}` : (t.addMemoryBtn || "Upload Photos")}
                 </button>
             </div>
 
@@ -2592,7 +2636,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                         <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200">
                             <i className="fa-solid fa-folder-plus text-4xl text-slate-300 mb-2"></i>
                             <p className="text-slate-600 font-semibold text-sm">No reunion albums created yet.</p>
-                            <p className="text-xs text-slate-400 mt-1">Click 'Add Photo' above to create the first album (e.g. 2002 Telamar Reunion)!</p>
+                            <p className="text-xs text-slate-400 mt-1">Click 'Upload Photos' above to batch drop pictures into your first album!</p>
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2660,11 +2704,14 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             onClick={() => {
                                 setMemCategory('Reunions');
                                 setMemAlbumName(selectedAlbum);
+                                const yearMatch = selectedAlbum.match(/\b(19\d\d|20\d\d)\b/);
+                                if (yearMatch) setMemYear(yearMatch[0]);
+                                setSelectedFiles([]);
                                 setShowUploadModal(true);
                             }}
                             className="bg-tropical-600 hover:bg-tropical-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
                         >
-                            <i className="fa-solid fa-plus"></i> Add Photo to This Album
+                            <i className="fa-solid fa-cloud-arrow-up"></i> Upload Photos in Masse
                         </button>
                     </div>
 
@@ -2685,7 +2732,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
                                     
-                                    {/* Delete Button */}
                                     <button
                                         type="button"
                                         title="Delete photo"
@@ -2738,7 +2784,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                                         {item.category}
                                     </div>
                                     
-                                    {/* Delete Button */}
                                     <button
                                         type="button"
                                         title="Delete photo"
@@ -2809,15 +2854,16 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                 </div>
             )}
 
-            {/* UPLOAD PHOTO MODAL */}
+            {/* BATCH UPLOAD MODAL */}
             {showUploadModal && (
                 <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                             <h3 className="text-lg font-bold text-slate-900 font-serif-title flex items-center gap-2">
-                                <i className="fa-solid fa-images text-pink-500"></i> Add Memory Photo
+                                <i className="fa-solid fa-images text-pink-500"></i> Batch Upload Photos
                             </h3>
                             <button 
+                                disabled={uploading}
                                 onClick={() => setShowUploadModal(false)}
                                 className="text-slate-400 hover:text-slate-600 text-lg"
                             >
@@ -2825,26 +2871,14 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             </button>
                         </div>
 
-                        <form onSubmit={submitMemory} className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Photo Title</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    value={memTitle}
-                                    onChange={(e) => setMemTitle(e.target.value)}
-                                    placeholder="e.g. Group photo at the beach"
-                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
-                                />
-                            </div>
-
+                        <form onSubmit={submitBatchMemories} className="space-y-4">
                             <div className="grid grid-cols-2 gap-3">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
                                     <select 
                                         value={memCategory}
                                         onChange={(e) => setMemCategory(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-white"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-white font-medium"
                                     >
                                         <option value="Reunions">Reunion Album</option>
                                         <option value="Vintage">Vintage</option>
@@ -2858,7 +2892,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                                         required
                                         value={memYear}
                                         onChange={(e) => setMemYear(e.target.value)}
-                                        placeholder="e.g. 2002"
+                                        placeholder="e.g. 2010"
                                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                     />
                                 </div>
@@ -2867,46 +2901,104 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             {memCategory === 'Reunions' && (
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
-                                        Reunion Album Folder
+                                        Reunion Album Target Folder
                                     </label>
                                     <input 
                                         type="text" 
                                         list="reunion-album-suggestions"
                                         value={memAlbumName}
                                         onChange={(e) => setMemAlbumName(e.target.value)}
-                                        placeholder="e.g. 2002 First Reunion (Telamar)"
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-amber-50/50 font-medium"
+                                        placeholder="e.g. 2010 - Third Reunion"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-amber-50/50 font-semibold text-slate-900"
                                     />
                                     <datalist id="reunion-album-suggestions">
                                         {REUNION_ALBUMS.map(alb => <option key={alb} value={alb} />)}
                                     </datalist>
-                                    <p className="text-[10px] text-slate-400 mt-1">Pick an existing reunion folder or type a new one to create it automatically.</p>
                                 </div>
                             )}
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select Photo Image</label>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                    Base Title (Optional)
+                                </label>
+                                <input 
+                                    type="text" 
+                                    value={memTitle}
+                                    onChange={(e) => setMemTitle(e.target.value)}
+                                    placeholder="e.g. La Ensenada Beach Activities"
+                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-0.5">Leave blank to automatically use image filenames.</p>
+                            </div>
+
+                            {/* MULTI-FILE PICKER */}
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                    Select Images (Pick Multiple Files)
+                                </label>
                                 <input 
                                     type="file" 
                                     accept="image/*" 
-                                    required
+                                    multiple
                                     disabled={uploading}
-                                    onChange={handlePhotoUpload}
-                                    className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+                                    onChange={handleFileSelection}
+                                    className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tropical-50 file:text-tropical-700 hover:file:bg-tropical-100 cursor-pointer"
                                 />
-                                {uploading && <p className="text-xs text-pink-600 font-bold mt-1">Uploading to Cloud Storage...</p>}
-                                {memPhoto && (
-                                    <img src={memPhoto} alt="Preview" className="w-full h-32 object-cover rounded-xl mt-2 border" />
+
+                                {/* THUMBNAIL QUEUE PREVIEW */}
+                                {selectedFiles.length > 0 && (
+                                    <div className="mt-3 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                                        <div className="flex items-center justify-between text-xs font-bold text-slate-700 mb-2">
+                                            <span>{selectedFiles.length} photo(s) selected</span>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setSelectedFiles([])}
+                                                className="text-rose-600 hover:underline text-[11px]"
+                                            >
+                                                Clear All
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto custom-scrollbar p-1">
+                                            {selectedFiles.map((f, index) => (
+                                                <div key={index} className="relative group rounded-lg overflow-hidden border border-slate-300 aspect-square bg-slate-200">
+                                                    <img src={f.previewUrl} alt="queue preview" className="w-full h-full object-cover" />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeSelectedFile(index)}
+                                                        className="absolute top-1 right-1 bg-rose-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] opacity-90 group-hover:opacity-100"
+                                                    >
+                                                        &times;
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* UPLOAD PROGRESS BAR */}
+                                {uploading && (
+                                    <div className="mt-3 space-y-1">
+                                        <div className="flex justify-between text-xs font-bold text-tropical-700">
+                                            <span>Uploading photos...</span>
+                                            <span>{uploadProgress}%</span>
+                                        </div>
+                                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                                            <div 
+                                                className="bg-tropical-600 h-2 transition-all duration-300"
+                                                style={{ width: `${uploadProgress}%` }}
+                                            ></div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
 
                             <div>
-                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Caption / Story Description</label>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Caption / Story Description (Applied to all)</label>
                                 <textarea 
                                     rows="2"
                                     value={memCaption}
                                     onChange={(e) => setMemCaption(e.target.value)}
-                                    placeholder="Share a short story or names of people in the photo..."
+                                    placeholder="Shared context or story about this batch..."
                                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                 ></textarea>
                             </div>
@@ -2925,6 +3017,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             <div className="flex justify-end space-x-2 pt-2">
                                 <button 
                                     type="button"
+                                    disabled={uploading}
                                     onClick={() => setShowUploadModal(false)}
                                     className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
                                 >
@@ -2932,10 +3025,15 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                                 </button>
                                 <button 
                                     type="submit"
-                                    disabled={uploading}
-                                    className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-tropical-600 hover:bg-tropical-700 shadow"
+                                    disabled={uploading || selectedFiles.length === 0}
+                                    className={`px-5 py-2 rounded-xl text-xs font-bold text-white shadow flex items-center gap-2 ${
+                                        uploading || selectedFiles.length === 0
+                                            ? 'bg-slate-400 cursor-not-allowed'
+                                            : 'bg-tropical-600 hover:bg-tropical-700'
+                                    }`}
                                 >
-                                    Upload Memory
+                                    <i className="fa-solid fa-cloud-arrow-up"></i>
+                                    <span>Upload {selectedFiles.length > 0 ? `${selectedFiles.length} Photos` : 'Photos'}</span>
                                 </button>
                             </div>
                         </form>
