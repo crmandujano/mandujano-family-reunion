@@ -421,23 +421,32 @@ function App() {
         }
     };
 
-    const handleAddMemory = async (newMem) => {
-        const memDoc = {
-            ...newMem,
-            createdAt: new Date().toISOString()
-        };
-
+    const handleAddMemory = async (newMemOrArray) => {
+        const items = Array.isArray(newMemOrArray) ? newMemOrArray : [newMemOrArray];
+        
         if (window.db) {
             try {
-                await window.db.collection('memories').add(memDoc);
-                showToast('Memory photo added to Memory Lane!', 'success');
+                const batchPromises = items.map(mem => {
+                    const memDoc = {
+                        ...mem,
+                        createdAt: new Date().toISOString()
+                    };
+                    return window.db.collection('memories').add(memDoc);
+                });
+                await Promise.all(batchPromises);
+                showToast(lang === 'es' ? `¡${items.length} fotos añadidas con éxito!` : `Added ${items.length} photo(s) successfully!`, 'success');
             } catch (err) {
                 console.error("Memory write error:", err);
-                showToast('Failed to save memory photo.', 'error');
+                showToast(lang === 'es' ? 'Error al guardar fotos.' : 'Failed to save photos.', 'error');
             }
         } else {
-            setMemories(prev => [ { id: `mem-${Date.now()}`, ...memDoc }, ...prev ]);
-            showToast('Memory photo saved locally!', 'success');
+            const localDocs = items.map((mem, idx) => ({
+                id: `mem-${Date.now()}-${idx}`,
+                ...mem,
+                createdAt: new Date().toISOString()
+            }));
+            setMemories(prev => [ ...localDocs, ...prev ]);
+            showToast(`Added ${items.length} photo(s) locally!`, 'success');
         }
     };
     
