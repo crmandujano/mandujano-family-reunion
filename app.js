@@ -2636,10 +2636,10 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             <i className="fa-solid fa-folder-open text-amber-500"></i>
                             Reunion Photo Albums
                         </h3>
-                        <span className="text-xs text-slate-500">{Object.keys(reunionAlbumsMap).length} Albums Recorded</span>
+                        <span className="text-xs text-slate-500">{sortedReunionAlbums.length} Albums Recorded</span>
                     </div>
 
-                    {Object.keys(reunionAlbumsMap).length === 0 ? (
+                    {sortedReunionAlbums.length === 0 ? (
                         <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200">
                             <i className="fa-solid fa-folder-plus text-4xl text-slate-300 mb-2"></i>
                             <p className="text-slate-600 font-semibold text-sm">No reunion albums created yet.</p>
@@ -2647,7 +2647,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {Object.values(reunionAlbumsMap).map(album => (
+                            {sortedReunionAlbums.map(album => (
                                 <div 
                                     key={album.name}
                                     onClick={() => setSelectedAlbum(album.name)}
