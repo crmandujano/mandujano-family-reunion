@@ -440,6 +440,25 @@ function App() {
             showToast('Memory photo saved locally!', 'success');
         }
     };
+    
+    const handleDeleteMemory = async (memId) => {
+        if (!confirm(lang === 'es' ? '¿Eliminar esta foto permanentemente?' : 'Are you sure you want to permanently delete this photo?')) {
+            return;
+        }
+
+        if (window.db) {
+            try {
+                await window.db.collection('memories').doc(memId).delete();
+                showToast(lang === 'es' ? 'Foto eliminada con éxito.' : 'Photo deleted successfully.', 'success');
+            } catch (err) {
+                console.error("Memory delete error:", err);
+                showToast(lang === 'es' ? 'Error al eliminar foto.' : 'Failed to delete photo.', 'error');
+            }
+        } else {
+            setMemories(prev => prev.filter(m => m.id !== memId));
+            showToast('Photo removed locally.', 'success');
+        }
+    };
 
     // Reset Data Back to Cloud Seed
     const handleResetData = () => {
@@ -825,6 +844,7 @@ function App() {
                     <MemoryLaneView 
                         memories={familyData.memories || []}
                         onAddMemory={handleAddMemory}
+                        onDeleteMemory={handleDeleteMemory}
                         t={t}
                     />
                 )}
@@ -2401,13 +2421,15 @@ function RSVPMessageBoardView({ familyData, onAddRSVP, onAddMessage, onLikeMessa
     );
 }
 
-// --- MEMORY LANE VIEW WITH ALBUM FOLDERS & CLOUD STORAGE ---
-function MemoryLaneView({ memories, onAddMemory, t }) {
+
+
+// --- MEMORY LANE VIEW WITH ALBUMS, LIGHTBOX & DELETE CAPABILITY ---
+function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
-    const [selectedAlbum, setSelectedAlbum] = useState(null); // e.g. "2002 Reunion"
+    const [selectedAlbum, setSelectedAlbum] = useState(null);
     const [uploading, setUploading] = useState(false);
-    const [previewPhoto, setPreviewPhoto] = useState(null); // Full-screen lightbox
+    const [previewPhoto, setPreviewPhoto] = useState(null);
 
     // Upload Form State
     const [memTitle, setMemTitle] = useState('');
@@ -2418,7 +2440,6 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
     const [memCaption, setMemCaption] = useState('');
     const [memSubmittedBy, setMemSubmittedBy] = useState('');
 
-    // Pre-defined reunion folders (users can also type a new one)
     const REUNION_ALBUMS = [
         '2002 First Reunion (Telamar)',
         '2006 Reunion',
@@ -2481,7 +2502,6 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
         setShowUploadModal(false);
     };
 
-    // Group Reunion memories by album name
     const reunionAlbumsMap = useMemo(() => {
         const map = {};
         memories.filter(m => m.category === 'Reunions').forEach(item => {
@@ -2498,10 +2518,6 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
         });
         return map;
     }, [memories]);
-
-    const openAlbum = (albumKey) => {
-        setSelectedAlbum(albumKey);
-    };
 
     return (
         <div className="space-y-8">
@@ -2574,7 +2590,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                             {Object.values(reunionAlbumsMap).map(album => (
                                 <div 
                                     key={album.name}
-                                    onClick={() => openAlbum(album.name)}
+                                    onClick={() => setSelectedAlbum(album.name)}
                                     className="bg-white border-2 border-slate-200 hover:border-tropical-500 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between"
                                 >
                                     <div className="relative h-56 bg-slate-800 overflow-hidden">
@@ -2648,7 +2664,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                             <div 
                                 key={item.id} 
                                 onClick={() => setPreviewPhoto(item)}
-                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer"
+                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer relative group"
                             >
                                 <div className="relative h-64 bg-slate-100 overflow-hidden">
                                     <img 
@@ -2659,6 +2675,19 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                     <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
+                                    
+                                    {/* Delete Button */}
+                                    <button
+                                        type="button"
+                                        title="Delete photo"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteMemory(item.id);
+                                        }}
+                                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                    >
+                                        <i className="fa-solid fa-trash text-xs"></i>
+                                    </button>
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                                     <div>
@@ -2685,7 +2714,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                             <div 
                                 key={item.id} 
                                 onClick={() => setPreviewPhoto(item)}
-                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer"
+                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer relative group"
                             >
                                 <div className="relative h-64 bg-slate-100 overflow-hidden">
                                     <img 
@@ -2696,9 +2725,22 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                     <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
-                                    <div className="absolute top-3 right-3 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                    <div className="absolute top-3 right-12 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                         {item.category}
                                     </div>
+                                    
+                                    {/* Delete Button */}
+                                    <button
+                                        type="button"
+                                        title="Delete photo"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onDeleteMemory(item.id);
+                                        }}
+                                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                    >
+                                        <i className="fa-solid fa-trash text-xs"></i>
+                                    </button>
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                                     <div>
@@ -2727,12 +2769,24 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                     >
                         <div className="relative max-h-[70vh] bg-black flex items-center justify-center">
                             <img src={previewPhoto.photo} alt={previewPhoto.title} className="max-h-[70vh] w-auto object-contain" />
-                            <button 
-                                onClick={() => setPreviewPhoto(null)}
-                                className="absolute top-4 right-4 bg-slate-900/80 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-800 border border-white/20"
-                            >
-                                <i className="fa-solid fa-xmark"></i>
-                            </button>
+                            <div className="absolute top-4 right-4 flex items-center space-x-2">
+                                <button 
+                                    title="Delete photo"
+                                    onClick={() => {
+                                        onDeleteMemory(previewPhoto.id);
+                                        setPreviewPhoto(null);
+                                    }}
+                                    className="bg-rose-600/90 hover:bg-rose-700 text-white w-9 h-9 rounded-full flex items-center justify-center transition border border-white/20 shadow"
+                                >
+                                    <i className="fa-solid fa-trash text-xs"></i>
+                                </button>
+                                <button 
+                                    onClick={() => setPreviewPhoto(null)}
+                                    className="bg-slate-900/80 hover:bg-slate-800 text-white w-9 h-9 rounded-full flex items-center justify-center border border-white/20 shadow"
+                                >
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
                         </div>
                         <div className="p-6 space-y-2">
                             <div className="flex items-center justify-between">
@@ -2807,7 +2861,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                         Reunion Album Folder
                                     </label>
                                     <input 
-                                        type="text"
+                                        type="text" 
                                         list="reunion-album-suggestions"
                                         value={memAlbumName}
                                         onChange={(e) => setMemAlbumName(e.target.value)}
