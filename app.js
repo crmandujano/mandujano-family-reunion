@@ -2401,41 +2401,60 @@ function RSVPMessageBoardView({ familyData, onAddRSVP, onAddMessage, onLikeMessa
     );
 }
 
-// --- MEMORY LANE VIEW WITH CLOUD STORAGE ---
+// --- MEMORY LANE VIEW WITH ALBUM FOLDERS & CLOUD STORAGE ---
 function MemoryLaneView({ memories, onAddMemory, t }) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedAlbum, setSelectedAlbum] = useState(null); // e.g. "2002 Reunion"
     const [uploading, setUploading] = useState(false);
+    const [previewPhoto, setPreviewPhoto] = useState(null); // Full-screen lightbox
 
+    // Upload Form State
     const [memTitle, setMemTitle] = useState('');
-    const [memYear, setMemYear] = useState('1985');
-    const [memCategory, setMemCategory] = useState('Vintage');
+    const [memYear, setMemYear] = useState('2002');
+    const [memCategory, setMemCategory] = useState('Reunions');
+    const [memAlbumName, setMemAlbumName] = useState('2002 First Reunion');
     const [memPhoto, setMemPhoto] = useState('');
     const [memCaption, setMemCaption] = useState('');
     const [memSubmittedBy, setMemSubmittedBy] = useState('');
+
+    // Pre-defined reunion folders (users can also type a new one)
+    const REUNION_ALBUMS = [
+        '2002 First Reunion (Telamar)',
+        '2006 Reunion',
+        '2012 Reunion',
+        '2018 Reunion',
+        'Other Past Gatherings'
+    ];
 
     const handlePhotoUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        try {
-            setUploading(true);
-            if (window.storage) {
+        setUploading(true);
+        if (window.storage) {
+            try {
                 const storageRef = window.storage.ref(`memories/${Date.now()}_${file.name}`);
                 const snap = await storageRef.put(file);
                 const url = await snap.ref.getDownloadURL();
                 setMemPhoto(url);
-            } else {
-                const reader = new FileReader();
-                reader.onload = (ev) => setMemPhoto(ev.target.result);
-                reader.readAsDataURL(file);
+                setUploading(false);
+                return;
+            } catch (storageErr) {
+                console.warn("Storage upload failed, falling back to local base64:", storageErr);
             }
-            setUploading(false);
-        } catch (err) {
-            console.error("Memory upload error:", err);
-            setUploading(false);
-            alert("Error uploading image to Cloud Storage.");
         }
+
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setMemPhoto(ev.target.result);
+            setUploading(false);
+        };
+        reader.onerror = () => {
+            setUploading(false);
+            alert("Error reading photo file.");
+        };
+        reader.readAsDataURL(file);
     };
 
     const submitMemory = (e) => {
@@ -2444,14 +2463,17 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
             alert('Please provide a title and select a photo file.');
             return;
         }
+
         onAddMemory({
             title: memTitle,
             year: memYear,
             category: memCategory,
+            album: memCategory === 'Reunions' ? (memAlbumName || '2002 First Reunion (Telamar)') : null,
             photo: memPhoto,
             caption: memCaption,
             submittedBy: memSubmittedBy || 'Family Member'
         });
+
         setMemTitle('');
         setMemPhoto('');
         setMemCaption('');
@@ -2459,85 +2481,278 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
         setShowUploadModal(false);
     };
 
-    const filteredMemories = useMemo(() => {
-        if (selectedCategory === 'All') return memories;
-        return memories.filter(m => m.category === selectedCategory);
-    }, [memories, selectedCategory]);
+    // Group Reunion memories by album name
+    const reunionAlbumsMap = useMemo(() => {
+        const map = {};
+        memories.filter(m => m.category === 'Reunions').forEach(item => {
+            const albumKey = item.album || `${item.year || '2002'} Reunion`;
+            if (!map[albumKey]) {
+                map[albumKey] = {
+                    name: albumKey,
+                    year: item.year || '2002',
+                    coverPhoto: item.photo,
+                    items: []
+                };
+            }
+            map[albumKey].items.push(item);
+        });
+        return map;
+    }, [memories]);
+
+    const openAlbum = (albumKey) => {
+        setSelectedAlbum(albumKey);
+    };
 
     return (
         <div className="space-y-8">
+            {/* HERO HEADER */}
             <div className="bg-gradient-to-r from-slate-900 via-caribbean-dark to-tropical-950 text-white rounded-3xl p-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
                 <div>
                     <span className="px-3 py-1 bg-pink-500/20 text-pink-300 border border-pink-500/30 text-xs font-bold rounded-full uppercase tracking-wider">
-                        {t.memoryTag || "VINTAGE FAMILY GALLERY"}
+                        {t.memoryTag || "VINTAGE FAMILY ARCHIVE"}
                     </span>
                     <h2 className="text-2xl sm:text-4xl font-extrabold font-serif-title mt-2">
-                        {t.memoryTitle || "Memory Lane Vintage Photo Gallery"}
+                        {t.memoryTitle || "Memory Lane Photo Gallery"}
                     </h2>
                     <p className="text-tropical-200 text-sm mt-2 max-w-xl">
-                        {t.memoryDesc}
+                        {t.memoryDesc || "Relive precious moments, historic reunions, and cherished vintage photographs of the Mandujano family."}
                     </p>
                 </div>
                 <button 
-                    onClick={() => setShowUploadModal(true)}
+                    onClick={() => {
+                        if (selectedAlbum) {
+                            setMemCategory('Reunions');
+                            setMemAlbumName(selectedAlbum);
+                        }
+                        setShowUploadModal(true);
+                    }}
                     className="shrink-0 bg-gradient-to-r from-amber-400 to-amber-500 text-slate-900 font-bold px-5 py-3 rounded-2xl shadow-lg transition text-xs uppercase tracking-wider flex items-center gap-2"
                 >
-                    <i className="fa-solid fa-camera"></i> {t.addMemoryBtn || "Add Vintage Photo"}
+                    <i className="fa-solid fa-camera"></i> {selectedAlbum ? `Add Photo to ${selectedAlbum}` : (t.addMemoryBtn || "Add Photo")}
                 </button>
             </div>
 
+            {/* CATEGORY TABS */}
             <div className="flex items-center space-x-2 overflow-x-auto pb-2">
-                {['All', 'Vintage', 'Milestones', 'Reunions'].map(cat => (
+                {['All', 'Reunions', 'Vintage', 'Milestones'].map(cat => (
                     <button
                         key={cat}
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => {
+                            setSelectedCategory(cat);
+                            setSelectedAlbum(null);
+                        }}
                         className={`px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap ${
                             selectedCategory === cat
                                 ? 'bg-tropical-600 text-white shadow'
                                 : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                         }`}
                     >
-                        {cat === 'All' ? (t.allPhotos || 'All Photos') : `${cat} ${t.photosTag || 'Photos'}`}
+                        {cat === 'All' ? (t.allPhotos || 'All Photos') : `${cat} ${cat === 'Reunions' ? 'Albums' : 'Photos'}`}
                     </button>
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredMemories.map(item => (
-                    <div key={item.id} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col">
-                        <div className="relative h-64 bg-slate-100 overflow-hidden">
-                            <img 
-                                src={item.photo} 
-                                alt={item.title} 
-                                className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
-                            />
-                            <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
-                                <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
-                            </div>
-                            <div className="absolute top-3 right-3 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                {item.category}
+            {/* VIEW A: REUNIONS FOLDERS VIEW */}
+            {selectedCategory === 'Reunions' && !selectedAlbum && (
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold font-serif-title text-slate-900 flex items-center gap-2">
+                            <i className="fa-solid fa-folder-open text-amber-500"></i>
+                            Reunion Photo Albums
+                        </h3>
+                        <span className="text-xs text-slate-500">{Object.keys(reunionAlbumsMap).length} Albums Recorded</span>
+                    </div>
+
+                    {Object.keys(reunionAlbumsMap).length === 0 ? (
+                        <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                            <i className="fa-solid fa-folder-plus text-4xl text-slate-300 mb-2"></i>
+                            <p className="text-slate-600 font-semibold text-sm">No reunion albums created yet.</p>
+                            <p className="text-xs text-slate-400 mt-1">Click 'Add Photo' above to create the first album (e.g. 2002 Telamar Reunion)!</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {Object.values(reunionAlbumsMap).map(album => (
+                                <div 
+                                    key={album.name}
+                                    onClick={() => openAlbum(album.name)}
+                                    className="bg-white border-2 border-slate-200 hover:border-tropical-500 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer group flex flex-col justify-between"
+                                >
+                                    <div className="relative h-56 bg-slate-800 overflow-hidden">
+                                        <img 
+                                            src={album.coverPhoto} 
+                                            alt={album.name} 
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-90 group-hover:opacity-100" 
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent"></div>
+                                        
+                                        <div className="absolute top-3 left-3 bg-amber-400 text-slate-900 text-xs font-bold px-3 py-1 rounded-full shadow">
+                                            <i className="fa-solid fa-folder mr-1.5"></i> Album
+                                        </div>
+
+                                        <div className="absolute top-3 right-3 bg-slate-900/80 backdrop-blur text-white text-[11px] font-bold px-2.5 py-1 rounded-full border border-white/20">
+                                            <i className="fa-solid fa-images mr-1"></i> {album.items.length} {album.items.length === 1 ? 'Photo' : 'Photos'}
+                                        </div>
+
+                                        <div className="absolute bottom-3 left-4 right-4">
+                                            <h4 className="font-bold text-white text-lg font-serif-title leading-snug drop-shadow">
+                                                {album.name}
+                                            </h4>
+                                            <span className="text-xs text-tropical-200">Year {album.year}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-4 bg-slate-50 flex items-center justify-between text-xs font-bold text-tropical-700 group-hover:text-tropical-900 border-t border-slate-200">
+                                        <span>Open Reunion Album &rarr;</span>
+                                        <i className="fa-solid fa-arrow-right text-[10px] transform group-hover:translate-x-1 transition-transform"></i>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* VIEW B: INSIDE A SPECIFIC REUNION ALBUM */}
+            {selectedCategory === 'Reunions' && selectedAlbum && (
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center space-x-3">
+                            <button 
+                                onClick={() => setSelectedAlbum(null)}
+                                className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+                            >
+                                <i className="fa-solid fa-arrow-left"></i> All Albums
+                            </button>
+                            <div>
+                                <h3 className="text-xl font-bold font-serif-title text-slate-900">{selectedAlbum}</h3>
+                                <p className="text-xs text-slate-500">
+                                    {reunionAlbumsMap[selectedAlbum]?.items.length || 0} photos saved in this album
+                                </p>
                             </div>
                         </div>
-                        <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
-                            <div>
-                                <h4 className="font-bold text-slate-900 text-lg font-serif-title">{item.title}</h4>
-                                <p className="text-xs text-slate-600 italic mt-1 leading-relaxed">"{item.caption}"</p>
+
+                        <button 
+                            onClick={() => {
+                                setMemCategory('Reunions');
+                                setMemAlbumName(selectedAlbum);
+                                setShowUploadModal(true);
+                            }}
+                            className="bg-tropical-600 hover:bg-tropical-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow flex items-center gap-1.5"
+                        >
+                            <i className="fa-solid fa-plus"></i> Add Photo to This Album
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {(reunionAlbumsMap[selectedAlbum]?.items || []).map(item => (
+                            <div 
+                                key={item.id} 
+                                onClick={() => setPreviewPhoto(item)}
+                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer"
+                            >
+                                <div className="relative h-64 bg-slate-100 overflow-hidden">
+                                    <img 
+                                        src={item.photo} 
+                                        alt={item.title} 
+                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                                    />
+                                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
+                                        <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
+                                    </div>
+                                </div>
+                                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 text-base font-serif-title">{item.title}</h4>
+                                        {item.caption && <p className="text-xs text-slate-600 italic mt-1 leading-relaxed">"{item.caption}"</p>}
+                                    </div>
+                                    <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+                                        <span>By: <strong className="text-slate-700">{item.submittedBy}</strong></span>
+                                        <i className="fa-solid fa-magnifying-glass-plus text-slate-400 hover:text-tropical-600"></i>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
-                                <span>{t.submittedBy || "Submitted by:"} <strong className="text-slate-700">{item.submittedBy}</strong></span>
-                                <i className="fa-solid fa-heart text-rose-400"></i>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* VIEW C: FLAT GRID FOR ALL / VINTAGE / MILESTONES */}
+            {selectedCategory !== 'Reunions' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {memories
+                        .filter(m => selectedCategory === 'All' || m.category === selectedCategory)
+                        .map(item => (
+                            <div 
+                                key={item.id} 
+                                onClick={() => setPreviewPhoto(item)}
+                                className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all card-glow flex flex-col cursor-pointer"
+                            >
+                                <div className="relative h-64 bg-slate-100 overflow-hidden">
+                                    <img 
+                                        src={item.photo} 
+                                        alt={item.title} 
+                                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" 
+                                    />
+                                    <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
+                                        <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
+                                    </div>
+                                    <div className="absolute top-3 right-3 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                        {item.category}
+                                    </div>
+                                </div>
+                                <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 text-base font-serif-title">{item.title}</h4>
+                                        {item.caption && <p className="text-xs text-slate-600 italic mt-1 leading-relaxed">"{item.caption}"</p>}
+                                    </div>
+                                    <div className="pt-3 border-t border-slate-100 text-[11px] text-slate-400 flex items-center justify-between">
+                                        <span>By: <strong className="text-slate-700">{item.submittedBy}</strong></span>
+                                        <i className="fa-solid fa-magnifying-glass-plus text-slate-400 hover:text-tropical-600"></i>
+                                    </div>
+                                </div>
                             </div>
+                        ))}
+                </div>
+            )}
+
+            {/* LIGHTBOX MODAL */}
+            {previewPhoto && (
+                <div 
+                    className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+                    onClick={() => setPreviewPhoto(null)}
+                >
+                    <div 
+                        className="max-w-3xl w-full bg-slate-900 text-white rounded-3xl overflow-hidden shadow-2xl border border-slate-800"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="relative max-h-[70vh] bg-black flex items-center justify-center">
+                            <img src={previewPhoto.photo} alt={previewPhoto.title} className="max-h-[70vh] w-auto object-contain" />
+                            <button 
+                                onClick={() => setPreviewPhoto(null)}
+                                className="absolute top-4 right-4 bg-slate-900/80 text-white w-9 h-9 rounded-full flex items-center justify-center hover:bg-slate-800 border border-white/20"
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-2">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-xl font-bold font-serif-title text-white">{previewPhoto.title}</h3>
+                                <span className="text-xs bg-amber-400 text-slate-900 font-bold px-2.5 py-0.5 rounded-full">{previewPhoto.year}</span>
+                            </div>
+                            {previewPhoto.caption && <p className="text-sm text-slate-300 italic">{previewPhoto.caption}</p>}
+                            <p className="text-xs text-slate-500 pt-2">Submitted by: {previewPhoto.submittedBy}</p>
                         </div>
                     </div>
-                ))}
-            </div>
+                </div>
+            )}
 
+            {/* UPLOAD PHOTO MODAL */}
             {showUploadModal && (
                 <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
                         <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
                             <h3 className="text-lg font-bold text-slate-900 font-serif-title flex items-center gap-2">
-                                <i className="fa-solid fa-images text-pink-500"></i> Add Vintage Memory Photo
+                                <i className="fa-solid fa-images text-pink-500"></i> Add Memory Photo
                             </h3>
                             <button 
                                 onClick={() => setShowUploadModal(false)}
@@ -2555,12 +2770,24 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                     required
                                     value={memTitle}
                                     onChange={(e) => setMemTitle(e.target.value)}
-                                    placeholder="e.g. Boda de Don Carlos y Olga"
+                                    placeholder="e.g. Group photo at the beach"
                                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                 />
                             </div>
 
                             <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Category</label>
+                                    <select 
+                                        value={memCategory}
+                                        onChange={(e) => setMemCategory(e.target.value)}
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-white"
+                                    >
+                                        <option value="Reunions">Reunion Album</option>
+                                        <option value="Vintage">Vintage</option>
+                                        <option value="Milestones">Milestones</option>
+                                    </select>
+                                </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Year Taken</label>
                                     <input 
@@ -2568,23 +2795,31 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                         required
                                         value={memYear}
                                         onChange={(e) => setMemYear(e.target.value)}
-                                        placeholder="e.g. 1978"
+                                        placeholder="e.g. 2002"
                                         className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Category Tag</label>
-                                    <select 
-                                        value={memCategory}
-                                        onChange={(e) => setMemCategory(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-white"
-                                    >
-                                        <option value="Vintage">Vintage</option>
-                                        <option value="Milestones">Milestones</option>
-                                        <option value="Reunions">Reunions</option>
-                                    </select>
-                                </div>
                             </div>
+
+                            {memCategory === 'Reunions' && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                        Reunion Album Folder
+                                    </label>
+                                    <input 
+                                        type="text"
+                                        list="reunion-album-suggestions"
+                                        value={memAlbumName}
+                                        onChange={(e) => setMemAlbumName(e.target.value)}
+                                        placeholder="e.g. 2002 First Reunion (Telamar)"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-amber-50/50 font-medium"
+                                    />
+                                    <datalist id="reunion-album-suggestions">
+                                        {REUNION_ALBUMS.map(alb => <option key={alb} value={alb} />)}
+                                    </datalist>
+                                    <p className="text-[10px] text-slate-400 mt-1">Pick an existing reunion folder or type a new one to create it automatically.</p>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Select Photo Image</label>
@@ -2608,7 +2843,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                     rows="2"
                                     value={memCaption}
                                     onChange={(e) => setMemCaption(e.target.value)}
-                                    placeholder="Share a short story or context about this photo..."
+                                    placeholder="Share a short story or names of people in the photo..."
                                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                 ></textarea>
                             </div>
@@ -2619,7 +2854,7 @@ function MemoryLaneView({ memories, onAddMemory, t }) {
                                     type="text" 
                                     value={memSubmittedBy}
                                     onChange={(e) => setMemSubmittedBy(e.target.value)}
-                                    placeholder="e.g. Liliana Mandujano"
+                                    placeholder="e.g. Celeo Mandujano"
                                     className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
                                 />
                             </div>
