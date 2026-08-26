@@ -2702,7 +2702,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                             <div>
                                 <h3 className="text-xl font-bold font-serif-title text-slate-900">{selectedAlbum}</h3>
                                 <p className="text-xs text-slate-500">
-                                    {reunionAlbumsMap[selectedAlbum]?.items.length || 0} photos saved in this album
+                                    {sortedReunionAlbums.find(a => a.name === selectedAlbum)?.items.length || 0} photos saved in this album
                                 </p>
                             </div>
                         </div>
