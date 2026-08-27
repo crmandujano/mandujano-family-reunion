@@ -102,6 +102,7 @@ window.TRANSLATIONS = {
         timelineTag: "Interactive Event Timeline",
         allDaysBtn: "All Days (Dec 30 – Jan 2)",
         merchShopTag: "Official Reunion Shop",
+		matriarchNote: "Heart & Soul of the Mandujano Family",
     },
     es: {
         title: "Gran Reunión Familia Mandujano",
@@ -205,6 +206,7 @@ window.TRANSLATIONS = {
         timelineTag: "Cronograma Interactivo de Eventos",
         allDaysBtn: "Todos los Días (30 Dic – 2 Ene)",
         merchShopTag: "Tienda Oficial de Recuerdos",
+		matriarchNote: "Corazón y Alma de la Familia Mandujano",
     }
 };
 
