@@ -354,7 +354,6 @@ function App() {
             try {
                 await window.db.collection('rsvps').add(payload);
 
-                // Background notification to your Gmail via EmailJS
                 if (window.emailjs) {
                     window.emailjs.send(
                         "service_ii89aer",
@@ -557,10 +556,10 @@ function App() {
                 </div>
             )}
 
-            {/* ADMIN PIN PROTECTION MODAL */}
+            {/* ADMIN PIN PROTECTION MODAL (Z-INDEX 60) */}
             {adminModalState.isOpen && (
-                <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+                <div className="fixed inset-0 z-[60] bg-slate-900/85 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
                         <div className="text-center mb-4">
                             <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-2 text-xl font-bold">
                                 <i className="fa-solid fa-lock"></i>
@@ -956,8 +955,8 @@ function CountdownTimer({ targetDate }) {
             } else {
                 const days = Math.floor(difference / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const seconds = Math.floor((difference % (1000 * 60 * 60)) / 1000);
+                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
                 setTimeLeft({ days, hours, minutes, seconds });
             }
         }, 1000);
@@ -1216,16 +1215,20 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
     );
 }
 
-// --- BRANCH DRILL-DOWN MODAL ---
+// --- BRANCH DRILL-DOWN MODAL WITH FULL EDITING FOR ALL GENERATIONS ---
 function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile, onAdd3rdGen, onAdd4thGen, onRequestDeleteMember, t, lang }) {
     const [showAdd3rdModal, setShowAdd3rdModal] = useState(false);
     const [selectedParentFor4th, setSelectedParentFor4th] = useState(null);
 
+    // Sibling Edit State
     const [isEditingSibling, setIsEditingSibling] = useState(false);
     const [editedSibName, setEditedSibName] = useState(sibling.name || '');
     const [editedSibSpouse, setEditedSibSpouse] = useState(sibling.spouse || '');
     const [editedSibWhatsapp, setEditedSibWhatsapp] = useState(sibling.whatsapp || '');
     const [editedSibNote, setEditedSibNote] = useState(sibling.note || '');
+
+    // Descendant Edit State (3rd & 4th Gen)
+    const [editingMember, setEditingMember] = useState(null); // { id, name, spouse, whatsapp, age, gender, gen }
 
     useEffect(() => {
         setEditedSibName(sibling.name || '');
@@ -1243,6 +1246,23 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
             note: editedSibNote
         });
         setIsEditingSibling(false);
+    };
+
+    const handleSaveDescendantProfile = (e) => {
+        e.preventDefault();
+        if (!editingMember) return;
+        const updates = {
+            name: editingMember.name,
+            whatsapp: editingMember.whatsapp
+        };
+        if (editingMember.gen === 3) {
+            updates.spouse = editingMember.spouse;
+        } else if (editingMember.gen === 4) {
+            updates.age = parseInt(editingMember.age) || 0;
+            updates.gender = editingMember.gender || 'male';
+        }
+        onUpdateProfile(editingMember.id, updates);
+        setEditingMember(null);
     };
 
     // 3rd Gen Form State
@@ -1455,13 +1475,22 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                         <div className="space-y-6">
                             {sibling.children.map((child) => (
                                 <div key={child.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 shadow-sm relative">
-                                    <button 
-                                        onClick={() => onRequestDeleteMember(child.id, 3)}
-                                        title={t.deleteMember}
-                                        className="absolute top-4 right-4 text-slate-400 hover:text-rose-600 p-1.5 transition text-xs"
-                                    >
-                                        <i className="fa-solid fa-trash"></i>
-                                    </button>
+                                    <div className="absolute top-4 right-4 flex items-center space-x-1.5">
+                                        <button 
+                                            onClick={() => setEditingMember({ ...child, gen: 3 })}
+                                            title="Edit member details"
+                                            className="text-slate-400 hover:text-tropical-600 p-1.5 transition text-xs"
+                                        >
+                                            <i className="fa-solid fa-pen"></i>
+                                        </button>
+                                        <button 
+                                            onClick={() => onRequestDeleteMember(child.id, 3)}
+                                            title={t.deleteMember}
+                                            className="text-slate-400 hover:text-rose-600 p-1.5 transition text-xs"
+                                        >
+                                            <i className="fa-solid fa-trash"></i>
+                                        </button>
+                                    </div>
 
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
                                         <div className="flex items-center space-x-4">
@@ -1543,13 +1572,22 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                                                 <span className="text-[10px] text-slate-500 font-medium">Age: {gchild.age || 'N/A'} yrs</span>
                                                             </div>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => onRequestDeleteMember(gchild.id, 4)}
-                                                            className="text-slate-300 hover:text-rose-600 transition p-1"
-                                                            title={t.deleteMember}
-                                                        >
-                                                            <i className="fa-solid fa-trash text-xs"></i>
-                                                        </button>
+                                                        <div className="flex items-center space-x-1">
+                                                            <button 
+                                                                onClick={() => setEditingMember({ ...gchild, gen: 4 })}
+                                                                className="text-slate-300 hover:text-tropical-600 transition p-1"
+                                                                title="Edit details"
+                                                            >
+                                                                <i className="fa-solid fa-pen text-xs"></i>
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => onRequestDeleteMember(gchild.id, 4)}
+                                                                className="text-slate-300 hover:text-rose-600 transition p-1"
+                                                                title={t.deleteMember}
+                                                            >
+                                                                <i className="fa-solid fa-trash text-xs"></i>
+                                                            </button>
+                                                        </div>
                                                     </div>
                                                 ))}
                                             </div>
@@ -1570,6 +1608,104 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                     </button>
                 </div>
             </div>
+
+            {/* EDIT DESCENDANT MODAL (3RD / 4TH GEN) */}
+            {editingMember && (
+                <div className="fixed inset-0 z-[60] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                            <h3 className="text-lg font-bold text-slate-900 font-serif-title flex items-center gap-2">
+                                <i className="fa-solid fa-user-pen text-tropical-600"></i>
+                                {editingMember.gen === 3 ? 'Edit 3rd Gen (Nieto)' : 'Edit 4th Gen (Bisnieto)'}
+                            </h3>
+                            <button 
+                                onClick={() => setEditingMember(null)}
+                                className="text-slate-400 hover:text-slate-600 text-lg"
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveDescendantProfile} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Full Name</label>
+                                <input 
+                                    type="text" 
+                                    required
+                                    value={editingMember.name || ''}
+                                    onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })}
+                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                />
+                            </div>
+
+                            {editingMember.gen === 3 && (
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Spouse Name</label>
+                                    <input 
+                                        type="text" 
+                                        value={editingMember.spouse || ''}
+                                        onChange={(e) => setEditingMember({ ...editingMember, spouse: e.target.value })}
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                    />
+                                </div>
+                            )}
+
+                            {editingMember.gen === 4 && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Age</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            max="100"
+                                            value={editingMember.age ?? ''}
+                                            onChange={(e) => setEditingMember({ ...editingMember, age: e.target.value })}
+                                            className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Gender</label>
+                                        <select 
+                                            value={editingMember.gender || 'male'}
+                                            onChange={(e) => setEditingMember({ ...editingMember, gender: e.target.value })}
+                                            className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none bg-white font-medium"
+                                        >
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">WhatsApp (e.g. +50499998888)</label>
+                                <input 
+                                    type="text" 
+                                    value={editingMember.whatsapp || ''}
+                                    onChange={(e) => setEditingMember({ ...editingMember, whatsapp: e.target.value })}
+                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                />
+                            </div>
+
+                            <div className="flex justify-end space-x-2 pt-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => setEditingMember(null)}
+                                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                                >
+                                    {t.cancel}
+                                </button>
+                                <button 
+                                    type="submit"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-tropical-600 hover:bg-tropical-700 shadow"
+                                >
+                                    {t.saveChanges}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* SUB-MODAL: ADD 3RD GEN */}
             {showAdd3rdModal && (
@@ -3300,7 +3436,7 @@ function ScheduleView({ t, lang }) {
                 { time: '08:00 AM – 10:00 AM', title: lang === 'es' ? 'Buffet de Desayuno Tropical Familiar' : 'Family Tropical Breakfast Buffet', desc: lang === 'es' ? 'Comience el día juntos con frutas frescas, baleadas, café y jugos tropicales.' : 'Start the day together with fresh fruit, baleadas, coffee, and tropical juices.', location: lang === 'es' ? 'Restaurante Las Carabelas' : 'Las Carabelas Restaurant' },
                 { time: '10:30 AM – 12:00 PM', title: lang === 'es' ? 'Sesión de Fotos Grupales por Generación' : 'Generation Group Photo Shoot', desc: lang === 'es' ? 'Fotos profesionales tomadas por generaciones (1ra, 2da, 3ra, 4ta gen). ¡Vestir de blanco y turquesa!' : 'Professional photos taken by generation wings (1st, 2nd, 3rd, 4th gen). Wear matching white/teal attire!', location: lang === 'es' ? 'Muelle del Mar' : 'Ocean Pier' },
                 { time: '01:30 PM – 05:30 PM', title: lang === 'es' ? 'Abierto / Playa / Piscina' : 'Open Time / Beach / Pool', desc: lang === 'es' ? 'Diviertete en Familia!' : 'Have fun with Family!', location: lang === 'es' ? 'Gran Salón de Eventos' : 'Grand Ballroom' },
-                { time: '07:30 PM – 12:00 AM', title: lang === 'es' ? 'Cena de Gala Oficial de la Reunión Mandujano' : 'Official Mandujano Reunion Gala Dinner', desc: lang === 'es' ? 'Cena formal y brindis con champaña a medianoche.' : 'Formal dinner and champagne toast as the clock strikes midnight!', location: lang === 'es' ? 'Gran Salón de Eventos' : 'Grand Ballroom' }
+                { time: '07:30 PM – 12:00 AM', title: lang === 'es' ? 'Cena de Gala Oficial de la Reunión Mandujano' : 'Official Mandujano Reunion Gala Dinner', desc: lang === 'es' ? 'Cena formal, ceremonia de premios familiares, video tributo y brindis con champaña a medianoche.' : 'Formal dinner, family awards ceremony, video tribute, and champagne toast as the clock strikes midnight!', location: lang === 'es' ? 'Gran Salón de Eventos' : 'Grand Ballroom' }
             ]
         },
         {
@@ -3311,7 +3447,7 @@ function ScheduleView({ t, lang }) {
             badge: lang === 'es' ? 'Día 3' : 'Day 3',
             events: [
                 { time: '11:00 AM – 03:00 PM', title: lang === 'es' ? 'Olímpiadas Playeras Mandujano y Parque Acuático' : 'Mandujano Family Beach Olympics & Waterpark', desc: lang === 'es' ? 'Torneo de voleibol, búsqueda del tesoro para niños, juego de la cuerda y fiesta en la piscina.' : 'Volleyball tournament, kids treasure hunt, tug-of-war, and pool party.', location: lang === 'es' ? 'Frente a la Playa' : 'La Ensenada Beachfront' },
-                { time: '07:00 PM – 09:00 PM', title: lang === 'es' ? 'Noche de Talentos' : 'Talent Show!', desc: lang === 'es' ? 'Los primos demuestran sus talentos: Musica, bailes, etc.' : 'The cousins display their talents: music, dance, comedy, etc ', location: lang === 'es' ? 'Centro de Convenciones' : 'Convention Center' }
+                { time: '06:00 PM – 09:00 PM', title: lang === 'es' ? 'BBQ Caribeño y Fogata con Guitarra' : 'Caribbean BBQ & Campfire Sing-Along', desc: lang === 'es' ? 'Parrillada de mariscos frescos, fogata con guitarra acústica e historias contadas por la Abuela Olga.' : 'Fresh seafood BBQ grill, acoustic guitar campfire, and storytelling by Abuela Olga.', location: lang === 'es' ? 'Área de Fogata en la Playa' : 'Beach Bonfire Area' }
             ]
         },
         {
