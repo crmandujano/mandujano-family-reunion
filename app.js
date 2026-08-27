@@ -472,7 +472,6 @@ function App() {
     const handleSetAlbumCover = async (albumName, coverPhotoId) => {
         if (window.db) {
             try {
-                // Find all reunion photos that belong to this album/year
                 const albumMemories = memories.filter(m => {
                     const currentAlbum = m.album || `${m.year || '2002'} Reunion`;
                     return currentAlbum === albumName || m.album === albumName;
@@ -501,6 +500,22 @@ function App() {
             showToast('Album cover updated locally!', 'success');
         }
     };
+
+    const handleUpdateMemory = async (memId, updatedFields) => {
+        if (window.db) {
+            try {
+                await window.db.collection('memories').doc(memId).update(updatedFields);
+                showToast(lang === 'es' ? 'Información de la foto actualizada.' : 'Photo details updated!', 'success');
+            } catch (err) {
+                console.error("Memory update error:", err);
+                showToast(lang === 'es' ? 'Error al actualizar foto.' : 'Failed to update photo details.', 'error');
+            }
+        } else {
+            setMemories(prev => prev.map(m => m.id === memId ? { ...m, ...updatedFields } : m));
+            showToast('Photo details updated locally!', 'success');
+        }
+    };
+
     // Reset Data Back to Cloud Seed
     const handleResetData = () => {
         if (confirm(lang === 'es' ? '¿Restablecer datos del árbol familiar a la semilla inicial en la nube?' : 'Reset family tree data back to original cloud seed dataset?')) {
@@ -887,9 +902,11 @@ function App() {
                         onAddMemory={handleAddMemory}
                         onDeleteMemory={handleDeleteMemory}
                         onSetCover={handleSetAlbumCover}
+                        onUpdateMemory={handleUpdateMemory}
                         t={t}
                     />
                 )}
+
                 {activeTab === 'schedule' && (
                     <ScheduleView t={t} lang={lang} />
                 )}
@@ -1613,7 +1630,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Photo Upload</label>
                                 <input 
                                     type="file" 
-                                    accept="image/*"
+                                    accept="image/*" 
                                     onChange={handle3rdPhotoUpload}
                                     className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-tropical-50 file:text-tropical-700 hover:file:bg-tropical-100"
                                 />
@@ -1703,7 +1720,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                 <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Photo Upload</label>
                                 <input 
                                     type="file" 
-                                    accept="image/*"
+                                    accept="image/*" 
                                     onChange={handle4thPhotoUpload}
                                     className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100"
                                 />
@@ -2462,10 +2479,8 @@ function RSVPMessageBoardView({ familyData, onAddRSVP, onAddMessage, onLikeMessa
     );
 }
 
-
-
-// --- MEMORY LANE VIEW WITH MULTI-PHOTO BATCH UPLOAD ---
-function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }) {
+// --- MEMORY LANE VIEW WITH MULTI-UPLOAD, ALBUMS, LIGHTBOX & INLINE EDITING ---
+function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, onUpdateMemory, t }) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedAlbum, setSelectedAlbum] = useState(null);
@@ -2473,12 +2488,19 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
     const [uploadProgress, setUploadProgress] = useState(0);
     const [previewPhoto, setPreviewPhoto] = useState(null);
 
+    // Edit Photo State
+    const [editingPhoto, setEditingPhoto] = useState(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editYear, setEditYear] = useState('');
+    const [editCaption, setEditCaption] = useState('');
+    const [editSubmittedBy, setEditSubmittedBy] = useState('');
+
     // Upload Form State
     const [memTitle, setMemTitle] = useState('');
     const [memYear, setMemYear] = useState('2010');
     const [memCategory, setMemCategory] = useState('Reunions');
     const [memAlbumName, setMemAlbumName] = useState('2010 - Third Reunion');
-    const [selectedFiles, setSelectedFiles] = useState([]); // Array of { file, previewUrl, uploadedUrl }
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [memCaption, setMemCaption] = useState('');
     const [memSubmittedBy, setMemSubmittedBy] = useState('');
 
@@ -2490,6 +2512,34 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
         '2018 - Fifth Reunion',
         'Other Past Gatherings'
     ];
+
+    const openEditModal = (photoItem) => {
+        setEditingPhoto(photoItem);
+        setEditTitle(photoItem.title || '');
+        setEditYear(photoItem.year || '');
+        setEditCaption(photoItem.caption || '');
+        setEditSubmittedBy(photoItem.submittedBy || '');
+    };
+
+    const savePhotoEdit = (e) => {
+        e.preventDefault();
+        if (!editingPhoto) return;
+
+        const updatedFields = {
+            title: editTitle.trim() || 'Untitled Photo',
+            year: editYear.trim() || 'Vintage',
+            caption: editCaption.trim(),
+            submittedBy: editSubmittedBy.trim() || 'Family Member'
+        };
+
+        onUpdateMemory(editingPhoto.id, updatedFields);
+
+        if (previewPhoto && previewPhoto.id === editingPhoto.id) {
+            setPreviewPhoto(prev => ({ ...prev, ...updatedFields }));
+        }
+
+        setEditingPhoto(null);
+    };
 
     const handleFileSelection = (e) => {
         const files = Array.from(e.target.files);
@@ -2526,7 +2576,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                 const item = selectedFiles[i];
                 let finalUrl = item.previewUrl;
 
-                // 1. Upload to Firebase Storage if online
                 if (window.storage) {
                     try {
                         const storageRef = window.storage.ref(`memories/${Date.now()}_${i}_${item.file.name}`);
@@ -2548,7 +2597,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                     });
                 }
 
-                // Default title to form title or file name
                 const displayTitle = total === 1 
                     ? (memTitle.trim() || item.name.replace(/\.[^/.]+$/, ''))
                     : (memTitle.trim() ? `${memTitle.trim()} (${i + 1}/${total})` : item.name.replace(/\.[^/.]+$/, ''));
@@ -2568,7 +2616,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
 
             await onAddMemory(uploadedMemories);
 
-            // Reset modal state
             setSelectedFiles([]);
             setMemTitle('');
             setMemCaption('');
@@ -2603,7 +2650,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
             map[albumKey].items.push(item);
         });
 
-        // Ensure explicit isCover photos take precedence as coverPhoto
         Object.values(map).forEach(album => {
             const explicitCover = album.items.find(item => item.isCover);
             if (explicitCover) {
@@ -2613,7 +2659,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
             }
         });
 
-        // Sort ascending by year (2002 -> 2006 -> 2010 -> ...)
         return Object.values(map).sort((a, b) => a.numericYear - b.numericYear);
     }, [memories]);
 
@@ -2639,6 +2684,8 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                             setMemAlbumName(selectedAlbum);
                             const yearMatch = selectedAlbum.match(/\b(19\d\d|20\d\d)\b/);
                             if (yearMatch) setMemYear(yearMatch[0]);
+                        } else if (selectedCategory === 'Vintage' || selectedCategory === 'Milestones') {
+                            setMemCategory(selectedCategory);
                         }
                         setSelectedFiles([]);
                         setShowUploadModal(true);
@@ -2763,8 +2810,8 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                         </button>
                     </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {(sortedReunionAlbums.find(a => a.name === selectedAlbum)?.items || []).map(item => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {(sortedReunionAlbums.find(a => a.name === selectedAlbum)?.items || []).map(item => (
                             <div 
                                 key={item.id} 
                                 onClick={() => setPreviewPhoto(item)}
@@ -2780,8 +2827,19 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
                                     
-                                    {/* Action Buttons: Set Cover & Delete */}
+                                    {/* Action Buttons: Edit, Set Cover & Delete */}
                                     <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+                                        <button
+                                            type="button"
+                                            title="Edit caption & details"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditModal(item);
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-slate-900/80 hover:bg-tropical-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                        >
+                                            <i className="fa-solid fa-pen text-xs"></i>
+                                        </button>
                                         <button
                                             type="button"
                                             title={item.isCover ? "Current Album Cover" : "Set as Album Cover"}
@@ -2846,21 +2904,35 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                                     <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-400/30">
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
-                                    <div className="absolute top-3 right-12 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                                    <div className="absolute top-3 right-20 bg-tropical-600/90 backdrop-blur text-white text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
                                         {item.category}
                                     </div>
                                     
-                                    <button
-                                        type="button"
-                                        title="Delete photo"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDeleteMemory(item.id);
-                                        }}
-                                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
-                                    >
-                                        <i className="fa-solid fa-trash text-xs"></i>
-                                    </button>
+                                    {/* Action Buttons: Edit & Delete */}
+                                    <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+                                        <button
+                                            type="button"
+                                            title="Edit caption & details"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                openEditModal(item);
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-slate-900/80 hover:bg-tropical-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                        >
+                                            <i className="fa-solid fa-pen text-xs"></i>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            title="Delete photo"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteMemory(item.id);
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                        >
+                                            <i className="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                                     <div>
@@ -2877,7 +2949,7 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                 </div>
             )}
 
-            {/* LIGHTBOX MODAL */}
+            {/* LIGHTBOX MODAL WITH FULL EDIT BUTTON */}
             {previewPhoto && (
                 <div 
                     className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
@@ -2890,6 +2962,13 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                         <div className="relative max-h-[70vh] bg-black flex items-center justify-center">
                             <img src={previewPhoto.photo} alt={previewPhoto.title} className="max-h-[70vh] w-auto object-contain" />
                             <div className="absolute top-4 right-4 flex items-center space-x-2">
+                                <button 
+                                    title="Edit caption & story"
+                                    onClick={() => openEditModal(previewPhoto)}
+                                    className="bg-tropical-600/90 hover:bg-tropical-700 text-white w-9 h-9 rounded-full flex items-center justify-center transition border border-white/20 shadow"
+                                >
+                                    <i className="fa-solid fa-pen text-xs"></i>
+                                </button>
                                 <button 
                                     title="Delete photo"
                                     onClick={() => {
@@ -2913,9 +2992,107 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }
                                 <h3 className="text-xl font-bold font-serif-title text-white">{previewPhoto.title}</h3>
                                 <span className="text-xs bg-amber-400 text-slate-900 font-bold px-2.5 py-0.5 rounded-full">{previewPhoto.year}</span>
                             </div>
-                            {previewPhoto.caption && <p className="text-sm text-slate-300 italic">{previewPhoto.caption}</p>}
-                            <p className="text-xs text-slate-500 pt-2">Submitted by: {previewPhoto.submittedBy}</p>
+                            {previewPhoto.caption ? (
+                                <p className="text-sm text-slate-300 italic leading-relaxed whitespace-pre-line">{previewPhoto.caption}</p>
+                            ) : (
+                                <p className="text-xs text-slate-500 italic">No caption added yet. Click the pencil icon above to write who is in this photo!</p>
+                            )}
+                            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                                <span>Submitted by: <strong className="text-slate-200">{previewPhoto.submittedBy}</strong></span>
+                                <button 
+                                    onClick={() => openEditModal(previewPhoto)}
+                                    className="text-amber-400 hover:text-amber-300 font-semibold underline flex items-center gap-1"
+                                >
+                                    <i className="fa-solid fa-pen"></i> Edit Caption
+                                </button>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT PHOTO DETAILS MODAL */}
+            {editingPhoto && (
+                <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in duration-150">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                            <h3 className="text-lg font-bold text-slate-900 font-serif-title flex items-center gap-2">
+                                <i className="fa-solid fa-pen-to-square text-tropical-600"></i> Edit Photo Information
+                            </h3>
+                            <button 
+                                onClick={() => setEditingPhoto(null)}
+                                className="text-slate-400 hover:text-slate-600 text-lg"
+                            >
+                                <i className="fa-solid fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <form onSubmit={savePhotoEdit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Photo Title</label>
+                                <input 
+                                    type="text" 
+                                    required
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    placeholder="e.g. Carlos and Siblings at Family Dinner"
+                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Year</label>
+                                    <input 
+                                        type="text" 
+                                        required
+                                        value={editYear}
+                                        onChange={(e) => setEditYear(e.target.value)}
+                                        placeholder="e.g. 1982"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Contributor</label>
+                                    <input 
+                                        type="text" 
+                                        value={editSubmittedBy}
+                                        onChange={(e) => setEditSubmittedBy(e.target.value)}
+                                        placeholder="e.g. Celeo Mandujano"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">
+                                    Caption & People in Photo
+                                </label>
+                                <textarea 
+                                    rows="4"
+                                    value={editCaption}
+                                    onChange={(e) => setEditCaption(e.target.value)}
+                                    placeholder="Add names of people from left to right, location, or the story behind this photo..."
+                                    className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
+                                ></textarea>
+                            </div>
+
+                            <div className="flex justify-end space-x-2 pt-2">
+                                <button 
+                                    type="button"
+                                    onClick={() => setEditingPhoto(null)}
+                                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit"
+                                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-tropical-600 hover:bg-tropical-700 shadow"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
