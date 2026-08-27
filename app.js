@@ -5,9 +5,9 @@ const { useState, useEffect, useMemo, useRef } = ReactObj;
 function App() {
     const [lang, setLang] = useState('en');
     
-    // Global Avatar Lightbox Preview
+    // Global Avatar Lightbox Preview State
     const [previewAvatarPerson, setPreviewAvatarPerson] = useState(null);
-    
+
     // Separate State Slices for Decoupled Architecture
     const [familyTree, setFamilyTree] = useState({
         patriarch: INITIAL_FAMILY_DATA.patriarch,
@@ -809,6 +809,7 @@ function App() {
                                     <UniversalAvatar 
                                         person={matriarch} 
                                         onUpdatePhoto={updatePersonPhoto} 
+                                        onOpenPreview={(p, g) => setPreviewAvatarPerson({ ...p, gender: g })}
                                         size="xl" 
                                         gender="female"
                                     />
@@ -828,6 +829,7 @@ function App() {
                                     <UniversalAvatar 
                                         person={patriarch} 
                                         onUpdatePhoto={updatePersonPhoto} 
+                                        onOpenPreview={(p, g) => setPreviewAvatarPerson({ ...p, gender: g })}
                                         size="xl" 
                                         gender="male"
                                     />
@@ -856,6 +858,7 @@ function App() {
                         familyData={familyData} 
                         onSelectSibling={(id) => setSelectedSiblingId(id)}
                         onUpdatePhoto={updatePersonPhoto}
+                        onOpenPreview={(p, g) => setPreviewAvatarPerson({ ...p, gender: g })}
                         t={t}
                     />
                 )}
@@ -873,6 +876,7 @@ function App() {
                         searchQuery={searchQuery}
                         setSearchQuery={setSearchQuery}
                         onUpdatePhoto={updatePersonPhoto}
+                        onOpenPreview={(p, g) => setPreviewAvatarPerson({ ...p, gender: g })}
                         onSelectSibling={(id) => { setSelectedSiblingId(id); setActiveTab('tree'); }}
                         t={t}
                     />
@@ -918,6 +922,7 @@ function App() {
                     sibling={selectedSibling}
                     onClose={() => setSelectedSiblingId(null)}
                     onUpdatePhoto={updatePersonPhoto}
+                    onOpenPreview={(p, g) => setPreviewAvatarPerson({ ...p, gender: g })}
                     onUpdateProfile={handleUpdateMemberProfile}
                     onAdd3rdGen={(newChild) => handleAdd3rdGen(selectedSibling.id, newChild)}
                     onAdd4thGen={(parent3rdId, newGChild) => handleAdd4thGen(selectedSibling.id, parent3rdId, newGChild)}
@@ -925,6 +930,53 @@ function App() {
                     t={t}
                     lang={lang}
                 />
+            )}
+
+            {/* GLOBAL AVATAR FULL-SCREEN LIGHTBOX */}
+            {previewAvatarPerson && (
+                <div 
+                    className="fixed inset-0 z-[100] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150"
+                    onClick={() => setPreviewAvatarPerson(null)}
+                >
+                    <div 
+                        className="max-w-md w-full bg-slate-900 text-white rounded-3xl overflow-hidden shadow-2xl border border-slate-800 relative animate-in zoom-in-95 duration-150"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button 
+                            type="button"
+                            onClick={() => setPreviewAvatarPerson(null)}
+                            className="absolute top-4 right-4 bg-slate-800/90 hover:bg-slate-700 text-white w-10 h-10 rounded-full flex items-center justify-center border border-white/20 shadow-lg z-20 transition text-base"
+                        >
+                            <i className="fa-solid fa-xmark"></i>
+                        </button>
+
+                        <div className="relative max-h-[70vh] bg-black flex items-center justify-center p-2">
+                            <img 
+                                src={previewAvatarPerson.photo || getDefaultAvatar(previewAvatarPerson.name, previewAvatarPerson.gender || 'female')} 
+                                alt={previewAvatarPerson.name} 
+                                className="max-h-[70vh] w-auto max-w-full object-contain rounded-2xl"
+                            />
+                        </div>
+
+                        <div className="p-5 flex items-center justify-between bg-slate-900 border-t border-slate-800">
+                            <div>
+                                <h3 className="text-xl font-bold font-serif-title text-white">
+                                    {previewAvatarPerson.name}
+                                </h3>
+                                {previewAvatarPerson.relationship && (
+                                    <p className="text-xs text-tropical-300 mt-0.5">{previewAvatarPerson.relationship}</p>
+                                )}
+                            </div>
+                            <button 
+                                type="button"
+                                onClick={() => setPreviewAvatarPerson(null)}
+                                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-200"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {/* FOOTER */}
@@ -989,7 +1041,7 @@ function CountdownTimer({ targetDate }) {
     );
 }
 
-// --- UNIVERSAL AVATAR (CLEAN TRIGGER & TOUCH UPLOAD) ---
+// --- UNIVERSAL AVATAR WITH PHOTO PREVIEW & TOUCH UPLOAD ---
 function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', className = '', gender = 'female' }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -1088,7 +1140,7 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
 }
 
 // --- SYMMETRICAL TREE VIEW ---
-function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) {
+function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, onOpenPreview, t }) {
     const { sisters, brothers } = familyData;
 
     return (
@@ -1124,6 +1176,7 @@ function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) 
                                     sibling={sister} 
                                     onSelectSibling={onSelectSibling}
                                     onUpdatePhoto={onUpdatePhoto}
+                                    onOpenPreview={onOpenPreview}
                                     type="sister"
                                     t={t}
                                 />
@@ -1142,6 +1195,7 @@ function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) 
                                     sibling={brother} 
                                     onSelectSibling={onSelectSibling}
                                     onUpdatePhoto={onUpdatePhoto}
+                                    onOpenPreview={onOpenPreview}
                                     type="brother"
                                     t={t}
                                 />
@@ -1155,7 +1209,7 @@ function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) 
 }
 
 // --- SIBLING CARD COMPONENT ---
-function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
+function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, onOpenPreview, type, t }) {
     const gen3Count = sibling.children ? sibling.children.length : 0;
     let gen4Count = 0;
     if (sibling.children) {
@@ -1178,6 +1232,7 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
                 <UniversalAvatar 
                     person={sibling} 
                     onUpdatePhoto={onUpdatePhoto} 
+                    onOpenPreview={onOpenPreview}
                     size="md" 
                     gender={type === 'sister' ? 'female' : 'male'}
                 />
@@ -1234,7 +1289,7 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, type, t }) {
 }
 
 // --- BRANCH DRILL-DOWN MODAL WITH FULL EDITING FOR ALL GENERATIONS ---
-function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile, onAdd3rdGen, onAdd4thGen, onRequestDeleteMember, t, lang }) {
+function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, onUpdateProfile, onAdd3rdGen, onAdd4thGen, onRequestDeleteMember, t, lang }) {
     const [showAdd3rdModal, setShowAdd3rdModal] = useState(false);
     const [selectedParentFor4th, setSelectedParentFor4th] = useState(null);
 
@@ -1246,7 +1301,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
     const [editedSibNote, setEditedSibNote] = useState(sibling.note || '');
 
     // Descendant Edit State (3rd & 4th Gen)
-    const [editingMember, setEditingMember] = useState(null); // { id, name, spouse, whatsapp, age, gender, gen }
+    const [editingMember, setEditingMember] = useState(null);
 
     useEffect(() => {
         setEditedSibName(sibling.name || '');
@@ -1382,6 +1437,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                         <UniversalAvatar 
                             person={sibling} 
                             onUpdatePhoto={onUpdatePhoto} 
+                            onOpenPreview={onOpenPreview}
                             size="lg" 
                             gender={sibling.type === 'sister' ? 'female' : 'male'}
                         />
@@ -1515,6 +1571,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                             <UniversalAvatar 
                                                 person={child} 
                                                 onUpdatePhoto={onUpdatePhoto} 
+                                                onOpenPreview={onOpenPreview}
                                                 size="md" 
                                                 gender="male"
                                             />
@@ -1570,6 +1627,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                                             <UniversalAvatar 
                                                                 person={gchild} 
                                                                 onUpdatePhoto={onUpdatePhoto} 
+                                                                onOpenPreview={onOpenPreview}
                                                                 size="sm" 
                                                                 gender={gchild.gender || 'female'}
                                                             />
@@ -1675,7 +1733,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onUpdateProfile
                                         <input 
                                             type="number" 
                                             min="0"
-                                            max="100"
+                                            max="100" 
                                             value={editingMember.age ?? ''}
                                             onChange={(e) => setEditingMember({ ...editingMember, age: e.target.value })}
                                             className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-tropical-500 outline-none"
@@ -2126,7 +2184,7 @@ function ResortCostEstimatorView({ familyData, t }) {
 }
 
 // --- DIRECTORY VIEW ---
-function DirectoryView({ familyData, searchQuery, setSearchQuery, onUpdatePhoto, onSelectSibling, t }) {
+function DirectoryView({ familyData, searchQuery, setSearchQuery, onUpdatePhoto, onOpenPreview, onSelectSibling, t }) {
     const [selectedGenFilter, setSelectedGenFilter] = useState('all');
 
     const allMembers = useMemo(() => {
@@ -2239,6 +2297,7 @@ function DirectoryView({ familyData, searchQuery, setSearchQuery, onUpdatePhoto,
                         <UniversalAvatar 
                             person={member} 
                             onUpdatePhoto={onUpdatePhoto} 
+                            onOpenPreview={onOpenPreview}
                             size="md" 
                             gender={member.gender || 'female'}
                         />
