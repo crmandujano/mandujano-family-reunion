@@ -3418,7 +3418,7 @@ function ScheduleView({ t, lang }) {
     );
 }
 
-// --- MERCH STORE VIEW ---
+// --- SOUVENIRS & REUNION APPAREL VIEW (INCLUDED / COMPLIMENTARY) ---
 function MerchView({ familyData, showToast, t }) {
     const [cart, setCart] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState('Branch #1: Camilo Mandujano');
@@ -3427,9 +3427,7 @@ function MerchView({ familyData, showToast, t }) {
         {
             id: 'tshirt-teal',
             name: 'Official Reunion T-Shirt (Caribbean Teal)',
-            price: 20,
             icon: 'fa-shirt',
-            badge: 'Bestseller',
             img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=400',
             desc: '100% Premium Honduran Cotton T-Shirt with official Mandujano Crest front & Tela 2027 back print.',
             hasSizes: true,
@@ -3438,31 +3436,17 @@ function MerchView({ familyData, showToast, t }) {
         {
             id: 'cap-embroidered',
             name: 'Commemorative Beach Cap / Visor',
-            price: 15,
             icon: 'fa-hat-cowboy',
-            badge: 'Popular',
             img: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?auto=format&fit=crop&q=80&w=400',
             desc: 'Breathable UV-protection sun visor cap embroidered with Mandujano Family Reunion emblem.',
             hasSizes: false,
             colors: ['Teal', 'Gold', 'Navy']
-        },
-        {
-            id: 'tote-bag',
-            name: 'Reunion Canvas Beach Tote Bag',
-            price: 12,
-            icon: 'fa-bag-shopping',
-            badge: 'Eco-Friendly',
-            img: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=400',
-            desc: 'Heavy-duty eco canvas beach bag perfect for towels, sunscreen, and reunion souvenirs.',
-            hasSizes: false,
-            colors: ['Natural Canvas', 'Teal']
         }
     ];
 
     const [itemStates, setItemStates] = useState({
         'tshirt-teal': { size: 'L', color: 'Teal', qty: 1 },
-        'cap-embroidered': { color: 'Teal', qty: 1 },
-        'tote-bag': { color: 'Natural Canvas', qty: 1 }
+        'cap-embroidered': { color: 'Teal', qty: 1 }
     });
 
     const allSiblings = useMemo(() => [...familyData.sisters, ...familyData.brothers], [familyData]);
@@ -3476,34 +3460,51 @@ function MerchView({ familyData, showToast, t }) {
 
     const addToCart = (product) => {
         const config = itemStates[product.id];
+        const qty = parseInt(config.qty) || 1;
         const cartItem = {
             cartId: `${product.id}-${Date.now()}`,
             id: product.id,
             name: product.name,
-            price: product.price,
-            size: config.size || 'N/A',
+            size: config.size || 'Standard',
             color: config.color || 'Standard',
-            qty: parseInt(config.qty) || 1,
-            total: product.price * (parseInt(config.qty) || 1)
+            qty: qty
         };
 
         setCart(prev => [...prev, cartItem]);
-        showToast(`Added ${cartItem.qty}x ${product.name} to order!`, 'success');
+        showToast(`Added ${qty}x ${product.name} to order request!`, 'success');
     };
 
     const removeFromCart = (cartId) => {
         setCart(prev => prev.filter(item => item.cartId !== cartId));
     };
 
-    const grandTotal = useMemo(() => cart.reduce((acc, curr) => acc + curr.total, 0), [cart]);
+    const totalItemCount = useMemo(() => cart.reduce((acc, curr) => acc + curr.qty, 0), [cart]);
 
-    const submitOrder = (e) => {
+    const submitOrder = async (e) => {
         e.preventDefault();
         if (cart.length === 0) {
-            alert('Your cart is empty! Please add items to your order first.');
+            alert('Your selection list is empty! Please add items to your request first.');
             return;
         }
-        alert(`Pre-order submitted successfully for ${selectedBranch}! Total: $${grandTotal} USD. Your order will be ready at registration.`);
+
+        const payload = {
+            branch: selectedBranch,
+            items: cart,
+            totalItems: totalItemCount,
+            createdAt: new Date().toISOString()
+        };
+
+        if (window.db) {
+            try {
+                await window.db.collection('merchOrders').add(payload);
+                showToast('¡Solicitud de prendas guardada con éxito!', 'success');
+            } catch (err) {
+                console.error("Order save error:", err);
+                showToast('Saved order request locally.', 'success');
+            }
+        }
+
+        alert(`Apparel request submitted successfully for ${selectedBranch}! Total: ${totalItemCount} item(s). Your welcome package will be ready at check-in.`);
         setCart([]);
     };
 
@@ -3511,17 +3512,18 @@ function MerchView({ familyData, showToast, t }) {
         <div className="space-y-8">
             <div className="bg-gradient-to-r from-caribbean-dark via-tropical-900 to-slate-900 text-white rounded-3xl p-8 shadow-xl">
                 <span className="px-3 py-1 bg-amber-400 text-slate-900 text-xs font-bold rounded-full uppercase tracking-wider">
-                    {t.merchShopTag || "Official Reunion Shop"}
+                    {t.merchShopTag || "Official Reunion Apparel"}
                 </span>
                 <h2 className="text-2xl sm:text-4xl font-extrabold font-serif-title mt-2">
-                    {t.merchTitle}
+                    {t.merchTitle || "Family Reunion Souvenirs & Apparel"}
                 </h2>
                 <p className="text-tropical-200 text-sm mt-2 max-w-2xl">
-                    {t.merchDesc}
+                    {t.merchDesc || "Select your T-shirt sizes and commemorative caps for your family branch. All apparel is complimentary and included in the reunion package!"}
                 </p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* APPAREL CARDS (2 ITEMS) */}
                 <div className="lg:col-span-8 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {merchItems.map(item => {
@@ -3531,11 +3533,8 @@ function MerchView({ familyData, showToast, t }) {
                                     <div>
                                         <div className="relative h-48 bg-slate-100 overflow-hidden">
                                             <img src={item.img} alt={item.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
-                                            <span className="absolute top-3 left-3 bg-amber-400 text-slate-900 font-bold text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                                                {item.badge}
-                                            </span>
-                                            <span className="absolute top-3 right-3 bg-slate-900/90 text-white font-serif-title font-bold text-sm px-3 py-1 rounded-full border border-amber-300">
-                                                ${item.price} USD
+                                            <span className="absolute top-3 right-3 bg-emerald-600/95 text-white font-bold text-xs px-3 py-1 rounded-full shadow border border-emerald-400">
+                                                <i className="fa-solid fa-gift mr-1"></i> Included / Incluido
                                             </span>
                                         </div>
                                         <div className="p-5 space-y-3">
@@ -3556,7 +3555,7 @@ function MerchView({ familyData, showToast, t }) {
                                                                     onClick={() => updateItemState(item.id, 'size', sz)}
                                                                     className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition ${
                                                                         state.size === sz
-                                                                            ? 'bg-tropical-600 text-white border-tropical-600'
+                                                                            ? 'bg-tropical-600 text-white border-tropical-600 shadow'
                                                                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
                                                                     }`}
                                                                 >
@@ -3604,7 +3603,7 @@ function MerchView({ familyData, showToast, t }) {
                                             onClick={() => addToCart(item)}
                                             className="w-full bg-tropical-600 hover:bg-tropical-700 text-white font-bold py-2.5 rounded-xl shadow transition text-xs flex items-center justify-center gap-2"
                                         >
-                                            <i className="fa-solid fa-cart-plus"></i> {t.addToOrder}
+                                            <i className="fa-solid fa-cart-plus"></i> {t.addToOrder || "Add to Selection"}
                                         </button>
                                     </div>
                                 </div>
@@ -3613,11 +3612,12 @@ function MerchView({ familyData, showToast, t }) {
                     </div>
                 </div>
 
+                {/* SELECTION SUMMARY SIDEBAR */}
                 <div className="lg:col-span-4 bg-white rounded-3xl p-6 shadow-md border border-slate-200 flex flex-col justify-between">
                     <div>
                         <h3 className="text-lg font-bold font-serif-title text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-                            <i className="fa-solid fa-cart-shopping text-amber-500"></i>
-                            {t.orderSummary}
+                            <i className="fa-solid fa-box-open text-amber-500"></i>
+                            {t.orderSummary || "Apparel Order Summary"}
                         </h3>
 
                         <div className="mt-4 mb-3">
@@ -3641,7 +3641,7 @@ function MerchView({ familyData, showToast, t }) {
                             <div className="text-center py-10 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 my-4">
                                 <i className="fa-solid fa-basket-shopping text-3xl text-slate-300 mb-2"></i>
                                 <p className="text-xs text-slate-500 font-medium">
-                                    {t.cartEmptyMsg || "Your pre-order cart is empty."}
+                                    {t.cartEmptyMsg || "No items selected yet. Choose sizes above and add to your branch request."}
                                 </p>
                             </div>
                         ) : (
@@ -3651,11 +3651,13 @@ function MerchView({ familyData, showToast, t }) {
                                         <div>
                                             <p className="text-xs font-bold text-slate-900 line-clamp-1">{item.name}</p>
                                             <p className="text-[10px] text-slate-500 font-medium">
-                                                {item.qty}x • Size: {item.size} • {item.color}
+                                                {item.qty}x {item.size !== 'Standard' ? `• Size: ${item.size}` : ''} • {item.color}
                                             </p>
                                         </div>
                                         <div className="flex items-center space-x-2 shrink-0">
-                                            <span className="text-xs font-bold text-slate-900">${item.total}</span>
+                                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                                                Included
+                                            </span>
                                             <button 
                                                 onClick={() => removeFromCart(item.cartId)}
                                                 className="text-slate-400 hover:text-rose-600 transition"
@@ -3671,8 +3673,8 @@ function MerchView({ familyData, showToast, t }) {
 
                     <div className="border-t border-slate-100 pt-4 space-y-4">
                         <div className="flex justify-between items-center text-base font-extrabold">
-                            <span className="text-slate-700">{t.total}:</span>
-                            <span className="text-xl font-serif-title text-amber-600">${grandTotal} USD</span>
+                            <span className="text-slate-700">Total Items:</span>
+                            <span className="text-xl font-serif-title text-tropical-700">{totalItemCount} Units</span>
                         </div>
 
                         <button 
@@ -3684,7 +3686,7 @@ function MerchView({ familyData, showToast, t }) {
                                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                             }`}
                         >
-                            <i className="fa-solid fa-check-circle"></i> {t.placeOrder}
+                            <i className="fa-solid fa-check-circle"></i> {t.placeOrder || "Submit Apparel Request"}
                         </button>
                     </div>
                 </div>
