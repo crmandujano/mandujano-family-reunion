@@ -877,10 +877,10 @@ function App() {
                         memories={familyData.memories || []}
                         onAddMemory={handleAddMemory}
                         onDeleteMemory={handleDeleteMemory}
+                        onSetCover={handleSetAlbumCover}
                         t={t}
                     />
                 )}
-
                 {activeTab === 'schedule' && (
                     <ScheduleView t={t} lang={lang} />
                 )}
@@ -2580,7 +2580,6 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
         memories.filter(m => m.category === 'Reunions').forEach(item => {
             const albumKey = item.album || `${item.year || '2002'} Reunion`;
             if (!map[albumKey]) {
-                // Extract 4-digit year from the album name or fallback to item.year
                 const match = albumKey.match(/\b(19\d\d|20\d\d)\b/);
                 const extractedYear = match ? parseInt(match[0], 10) : parseInt(item.year || '2002', 10);
 
@@ -2591,6 +2590,10 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                     coverPhoto: item.photo,
                     items: []
                 };
+            }
+            // If this item is explicitly designated as the cover, prioritize it
+            if (item.isCover) {
+                map[albumKey].coverPhoto = item.photo;
             }
             map[albumKey].items.push(item);
         });
@@ -2762,17 +2765,35 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                                         <i className="fa-regular fa-calendar-check mr-1"></i> {item.year}
                                     </div>
                                     
-                                    <button
-                                        type="button"
-                                        title="Delete photo"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onDeleteMemory(item.id);
-                                        }}
-                                        className="absolute top-3 right-3 w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
-                                    >
-                                        <i className="fa-solid fa-trash text-xs"></i>
-                                    </button>
+                                    {/* Action Buttons: Set Cover & Delete */}
+                                    <div className="absolute top-3 right-3 flex items-center space-x-1.5">
+                                        <button
+                                            type="button"
+                                            title={item.isCover ? "Current Album Cover" : "Set as Album Cover"}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onSetCover && onSetCover(selectedAlbum, item.id);
+                                            }}
+                                            className={`w-8 h-8 rounded-full border border-white/20 flex items-center justify-center transition shadow ${
+                                                item.isCover 
+                                                    ? 'bg-amber-400 text-slate-900 font-bold' 
+                                                    : 'bg-slate-900/80 hover:bg-amber-400 hover:text-slate-900 text-slate-300'
+                                            }`}
+                                        >
+                                            <i className="fa-solid fa-star text-xs"></i>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            title="Delete photo"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onDeleteMemory(item.id);
+                                            }}
+                                            className="w-8 h-8 rounded-full bg-slate-900/80 hover:bg-rose-600 text-slate-300 hover:text-white border border-white/20 flex items-center justify-center transition shadow"
+                                        >
+                                            <i className="fa-solid fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                                     <div>
