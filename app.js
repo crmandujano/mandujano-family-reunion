@@ -803,7 +803,7 @@ function App() {
                             </div>
 
                             <div className="flex items-center justify-center space-x-6 sm:space-x-8">
-                               <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center">
                                     <UniversalAvatar 
                                         person={matriarch} 
                                         onUpdatePhoto={updatePersonPhoto} 
@@ -817,7 +817,7 @@ function App() {
                                         {matriarch.status} (Age {matriarch.age})
                                     </span>
                                 </div>
-                                            
+
                                 <div className="text-amber-400 font-serif-title text-2xl font-bold">
                                     &
                                 </div>
@@ -956,8 +956,8 @@ function CountdownTimer({ targetDate }) {
             } else {
                 const days = Math.floor(difference / (1000 * 60 * 60 * 24));
                 const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+                const minutes = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const seconds = Math.floor((difference % (1000 * 60 * 60)) / 1000);
                 setTimeLeft({ days, hours, minutes, seconds });
             }
         }, 1000);
@@ -1094,8 +1094,7 @@ function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) 
                 </div>
             </div>
 
-                <div className="relative bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 overflow-x-auto custom-scrollbar">
-                        
+            <div className="relative bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 overflow-x-auto custom-scrollbar">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                     <div className="space-y-4">
                         <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-center shadow flex items-center justify-center gap-2">
@@ -3471,10 +3470,6 @@ function MerchView({ familyData, showToast, t }) {
         showToast(`Added ${qty}x ${product.name} to order request!`, 'success');
     };
 
-        setCart(prev => [...prev, cartItem]);
-        showToast(`Added ${qty}x ${product.name} to order request!`, 'success');
-    };
-
     const removeFromCart = (cartId) => {
         setCart(prev => prev.filter(item => item.cartId !== cartId));
     };
@@ -3523,7 +3518,51 @@ function MerchView({ familyData, showToast, t }) {
                 </p>
             </div>
 
-          <div className="w-full">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* APPAREL CARDS (2 ITEMS) */}
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {merchItems.map(item => {
+                            const state = itemStates[item.id];
+                            return (
+                                <div key={item.id} className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm hover:shadow-md transition flex flex-col justify-between">
+                                    <div>
+                                        <div className="relative h-48 bg-slate-100 overflow-hidden">
+                                            <img src={item.img} alt={item.name} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                                            <span className="absolute top-3 right-3 bg-emerald-600/95 text-white font-bold text-xs px-3 py-1 rounded-full shadow border border-emerald-400">
+                                                <i className="fa-solid fa-gift mr-1"></i> Included / Incluido
+                                            </span>
+                                        </div>
+                                        <div className="p-5 space-y-3">
+                                            <h3 className="font-bold text-slate-900 text-base">{item.name}</h3>
+                                            <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+
+                                            <div className="space-y-2 pt-2 border-t border-slate-100">
+                                                {item.hasSizes && (
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
+                                                            {t.selectSizeLabel || "Select Size"}
+                                                        </label>
+                                                        <div className="flex gap-1.5 flex-wrap">
+                                                            {['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL'].map(sz => (
+                                                                <button
+                                                                    key={sz}
+                                                                    type="button"
+                                                                    onClick={() => updateItemState(item.id, 'size', sz)}
+                                                                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition ${
+                                                                        state.size === sz
+                                                                            ? 'bg-tropical-600 text-white border-tropical-600 shadow'
+                                                                            : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                                                                    }`}
+                                                                >
+                                                                    {sz}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="w-full">
                                                     <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
                                                         {t.quantityLabel || "Quantity"}
                                                     </label>
@@ -3535,35 +3574,6 @@ function MerchView({ familyData, showToast, t }) {
                                                         onChange={(e) => updateItemState(item.id, 'qty', e.target.value)}
                                                         className="w-full text-xs p-2 rounded-xl border border-slate-300 outline-none font-bold"
                                                     />
-                                                </div>
-                                                )}
-
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                                                            {t.colorLabel || "Color"}
-                                                        </label>
-                                                        <select 
-                                                            value={state.color}
-                                                            onChange={(e) => updateItemState(item.id, 'color', e.target.value)}
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-300 outline-none bg-slate-50 font-medium"
-                                                        >
-                                                            {item.colors.map(c => <option key={c} value={c}>{c}</option>)}
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">
-                                                            {t.quantityLabel || "Quantity"}
-                                                        </label>
-                                                        <input 
-                                                            type="number" 
-                                                            min="1" 
-                                                            max="20" 
-                                                            value={state.qty}
-                                                            onChange={(e) => updateItemState(item.id, 'qty', e.target.value)}
-                                                            className="w-full text-xs p-2 rounded-xl border border-slate-300 outline-none font-bold"
-                                                        />
-                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
