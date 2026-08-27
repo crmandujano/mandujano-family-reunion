@@ -803,7 +803,7 @@ function App() {
                             </div>
 
                             <div className="flex items-center justify-center space-x-6 sm:space-x-8">
-                                <div className="flex flex-col items-center">
+                               <div className="flex flex-col items-center">
                                     <UniversalAvatar 
                                         person={matriarch} 
                                         onUpdatePhoto={updatePersonPhoto} 
@@ -816,18 +816,8 @@ function App() {
                                     <span className="text-[11px] bg-emerald-500/20 text-emerald-300 font-semibold px-2 py-0.5 rounded-full border border-emerald-500/30">
                                         {matriarch.status} (Age {matriarch.age})
                                     </span>
-                                    {matriarch.whatsapp && (
-                                        <a 
-                                            href={`https://wa.me/${matriarch.whatsapp.replace(/[^0-9]/g, '')}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="mt-1.5 inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full transition shadow"
-                                        >
-                                            <i className="fa-brands fa-whatsapp"></i> WhatsApp
-                                        </a>
-                                    )}
                                 </div>
-
+                                            
                                 <div className="text-amber-400 font-serif-title text-2xl font-bold">
                                     &
                                 </div>
