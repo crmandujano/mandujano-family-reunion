@@ -3428,7 +3428,7 @@ function MerchView({ familyData, showToast, t }) {
             id: 'tshirt-teal',
             name: 'Official Reunion T-Shirt (Caribbean Teal)',
             icon: 'fa-shirt',
-            img: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?auto=format&fit=crop&q=80&w=400',
+            img: 'https://images.unsplash.com/photo-1581655353564-df123a1eb820?auto=format&fit=crop&q=80&w=600',
             desc: '100% Premium Honduran Cotton T-Shirt with official Mandujano Crest front & Tela 2027 back print.',
             hasSizes: true,
             colors: ['Teal', 'White', 'Navy Blue', 'Gold']
