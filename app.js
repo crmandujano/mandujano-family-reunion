@@ -5,6 +5,9 @@ const { useState, useEffect, useMemo, useRef } = ReactObj;
 function App() {
     const [lang, setLang] = useState('en');
     
+    // Global Avatar Lightbox Preview
+    const [previewAvatarPerson, setPreviewAvatarPerson] = useState(null);
+    
     // Separate State Slices for Decoupled Architecture
     const [familyTree, setFamilyTree] = useState({
         patriarch: INITIAL_FAMILY_DATA.patriarch,
@@ -986,11 +989,10 @@ function CountdownTimer({ targetDate }) {
     );
 }
 
-// --- UNIVERSAL AVATAR WITH PHOTO PREVIEW LIGHTBOX & CAMERA UPLOAD ---
-function UniversalAvatar({ person, onUpdatePhoto, size = 'md', className = '', gender = 'female' }) {
+// --- UNIVERSAL AVATAR (CLEAN TRIGGER & TOUCH UPLOAD) ---
+function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', className = '', gender = 'female' }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
-    const [showFullPhotoModal, setShowFullPhotoModal] = useState(false);
 
     const handleFileChange = async (e) => {
         const file = e.target.files[0];
@@ -1031,113 +1033,57 @@ function UniversalAvatar({ person, onUpdatePhoto, size = 'md', className = '', g
     };
 
     const imgSrc = person.photo || getDefaultAvatar(person.name, gender);
-    const hasCustomPhoto = Boolean(person.photo);
 
     return (
-        <>
-            <div className={`relative group inline-block ${className}`}>
-                <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    accept="image/*" 
-                    className="hidden" 
+        <div className={`relative group inline-block ${className}`}>
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileChange} 
+                accept="image/*" 
+                className="hidden" 
+            />
+
+            {/* Click to blow up photo */}
+            <div 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (onOpenPreview) {
+                        onOpenPreview(person, gender);
+                    }
+                }}
+                title="Click to view full photo"
+                className={`${sizeClasses[size] || sizeClasses.md} rounded-full overflow-hidden border-2 border-amber-400/80 shadow-md relative bg-slate-200 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-amber-300 transition`}
+            >
+                <img 
+                    src={imgSrc} 
+                    alt={person.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                 />
-
-                {/* Clickable Avatar Circle for Blown-up Preview */}
-                <div 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setShowFullPhotoModal(true);
-                    }}
-                    title="Click to view full photo"
-                    className={`${sizeClasses[size] || sizeClasses.md} rounded-full overflow-hidden border-2 border-amber-400/80 shadow-md relative bg-slate-200 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-amber-300 transition`}
-                >
-                    <img 
-                        src={imgSrc} 
-                        alt={person.name} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
-                    />
-                    
-                    {uploading && (
-                        <div className="absolute inset-0 bg-slate-900/70 text-white flex flex-col items-center justify-center backdrop-blur-[1px]">
-                            <i className="fa-solid fa-spinner fa-spin text-amber-300 text-base"></i>
-                        </div>
-                    )}
-                </div>
-
-                {/* Dedicated Touch Camera Badge for Upload Only */}
-                {onUpdatePhoto && (
-                    <button
-                        type="button"
-                        disabled={uploading}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (fileInputRef.current) fileInputRef.current.click();
-                        }}
-                        title="Change Photo"
-                        className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slate-900/95 hover:bg-amber-500 text-amber-400 hover:text-slate-900 border-2 border-amber-300 flex items-center justify-center text-xs shadow-lg hover:scale-110 active:scale-95 transition z-10 cursor-pointer"
-                    >
-                        <i className="fa-solid fa-camera"></i>
-                    </button>
+                
+                {uploading && (
+                    <div className="absolute inset-0 bg-slate-900/70 text-white flex flex-col items-center justify-center backdrop-blur-[1px]">
+                        <i className="fa-solid fa-spinner fa-spin text-amber-300 text-base"></i>
+                    </div>
                 )}
             </div>
 
-            {/* BLOWN-UP FULL PHOTO PREVIEW MODAL */}
-            {showFullPhotoModal && (
-                <div 
-                    className="fixed inset-0 z-[70] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4"
+            {/* Camera Upload Badge */}
+            {onUpdatePhoto && (
+                <button
+                    type="button"
+                    disabled={uploading}
                     onClick={(e) => {
                         e.stopPropagation();
-                        setShowFullPhotoModal(false);
+                        if (fileInputRef.current) fileInputRef.current.click();
                     }}
+                    title="Change Photo"
+                    className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slate-900/95 hover:bg-amber-500 text-amber-400 hover:text-slate-900 border-2 border-amber-300 flex items-center justify-center text-xs shadow-lg hover:scale-110 active:scale-95 transition z-10 cursor-pointer"
                 >
-                    <div 
-                        className="max-w-md w-full bg-slate-900 text-white rounded-3xl overflow-hidden shadow-2xl border border-slate-800 animate-in fade-in zoom-in duration-150 relative"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button 
-                            onClick={() => setShowFullPhotoModal(false)}
-                            className="absolute top-4 right-4 bg-slate-800/80 hover:bg-slate-700 text-white w-9 h-9 rounded-full flex items-center justify-center border border-white/20 shadow z-10 transition"
-                        >
-                            <i className="fa-solid fa-xmark"></i>
-                        </button>
-
-                        <div className="relative max-h-[65vh] bg-black flex items-center justify-center overflow-hidden">
-                            <img 
-                                src={imgSrc} 
-                                alt={person.name} 
-                                className="max-h-[65vh] w-auto object-contain"
-                            />
-                        </div>
-
-                        <div className="p-5 flex items-center justify-between bg-slate-900 border-t border-slate-800">
-                            <div>
-                                <h3 className="text-lg font-bold font-serif-title text-white flex items-center gap-2">
-                                    {person.name}
-                                </h3>
-                                {person.relationship && (
-                                    <p className="text-xs text-tropical-300 mt-0.5">{person.relationship}</p>
-                                )}
-                            </div>
-
-                            {onUpdatePhoto && (
-                                <button
-                                    onClick={() => {
-                                        setShowFullPhotoModal(false);
-                                        if (fileInputRef.current) fileInputRef.current.click();
-                                    }}
-                                    className="bg-amber-400 hover:bg-amber-500 text-slate-900 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow flex items-center gap-1.5"
-                                >
-                                    <i className="fa-solid fa-camera"></i>
-                                    <span>{hasCustomPhoto ? 'Change Photo' : 'Upload Photo'}</span>
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
+                    <i className="fa-solid fa-camera"></i>
+                </button>
             )}
-        </>
+        </div>
     );
 }
 
