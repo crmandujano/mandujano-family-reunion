@@ -470,26 +470,35 @@ function App() {
     };
 
     const handleSetAlbumCover = async (albumName, coverPhotoId) => {
-        if (!window.db) return;
-        try {
-            // Find all memories in this album and update cover flags
-            const albumMemories = memories.filter(m => m.album === albumName || m.year === albumName);
-            const batch = window.db.batch();
+        if (window.db) {
+            try {
+                // Find all reunion photos that belong to this album/year
+                const albumMemories = memories.filter(m => {
+                    const currentAlbum = m.album || `${m.year || '2002'} Reunion`;
+                    return currentAlbum === albumName || m.album === albumName;
+                });
+                
+                const batch = window.db.batch();
+                albumMemories.forEach(mem => {
+                    const ref = window.db.collection('memories').doc(mem.id);
+                    batch.update(ref, { isCover: mem.id === coverPhotoId });
+                });
 
-            albumMemories.forEach(mem => {
-                const ref = window.db.collection('memories').doc(mem.id);
-                if (mem.id === coverPhotoId) {
-                    batch.update(ref, { isCover: true });
-                } else if (mem.isCover) {
-                    batch.update(ref, { isCover: false });
+                await batch.commit();
+                showToast(lang === 'es' ? '¡Foto de portada actualizada!' : 'Album cover photo updated!', 'success');
+            } catch (err) {
+                console.error("Cover update error:", err);
+                showToast(lang === 'es' ? 'Error al actualizar portada.' : 'Failed to update album cover.', 'error');
+            }
+        } else {
+            setMemories(prev => prev.map(m => {
+                const currentAlbum = m.album || `${m.year || '2002'} Reunion`;
+                if (currentAlbum === albumName || m.album === albumName) {
+                    return { ...m, isCover: m.id === coverPhotoId };
                 }
-            });
-
-            await batch.commit();
-            showToast(lang === 'es' ? 'Foto de portada actualizada.' : 'Album cover photo updated!', 'success');
-        } catch (err) {
-            console.error("Cover update error:", err);
-            showToast(lang === 'es' ? 'Error al actualizar portada.' : 'Failed to update album cover.', 'error');
+                return m;
+            }));
+            showToast('Album cover updated locally!', 'success');
         }
     };
     // Reset Data Back to Cloud Seed
@@ -2456,7 +2465,7 @@ function RSVPMessageBoardView({ familyData, onAddRSVP, onAddMessage, onLikeMessa
 
 
 // --- MEMORY LANE VIEW WITH MULTI-PHOTO BATCH UPLOAD ---
-function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
+function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, onSetCover, t }) {
     const [showUploadModal, setShowUploadModal] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedAlbum, setSelectedAlbum] = useState(null);
@@ -2591,11 +2600,17 @@ function MemoryLaneView({ memories, onAddMemory, onDeleteMemory, t }) {
                     items: []
                 };
             }
-            // If this item is explicitly designated as the cover, prioritize it
-            if (item.isCover) {
-                map[albumKey].coverPhoto = item.photo;
-            }
             map[albumKey].items.push(item);
+        });
+
+        // Ensure explicit isCover photos take precedence as coverPhoto
+        Object.values(map).forEach(album => {
+            const explicitCover = album.items.find(item => item.isCover);
+            if (explicitCover) {
+                album.coverPhoto = explicitCover.photo;
+            } else if (album.items.length > 0) {
+                album.coverPhoto = album.items[0].photo;
+            }
         });
 
         // Sort ascending by year (2002 -> 2006 -> 2010 -> ...)
