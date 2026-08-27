@@ -3311,7 +3311,7 @@ function ScheduleView({ t, lang }) {
             badge: lang === 'es' ? 'Día 3' : 'Day 3',
             events: [
                 { time: '11:00 AM – 03:00 PM', title: lang === 'es' ? 'Olímpiadas Playeras Mandujano y Parque Acuático' : 'Mandujano Family Beach Olympics & Waterpark', desc: lang === 'es' ? 'Torneo de voleibol, búsqueda del tesoro para niños, juego de la cuerda y fiesta en la piscina.' : 'Volleyball tournament, kids treasure hunt, tug-of-war, and pool party.', location: lang === 'es' ? 'Frente a la Playa' : 'La Ensenada Beachfront' },
-                { time: '06:00 PM – 09:00 PM', title: lang === 'es' ? 'BBQ Caribeño y Fogata con Guitarra' : 'Caribbean BBQ & Campfire Sing-Along', desc: lang === 'es' ? 'Parrillada de mariscos frescos, fogata con guitarra acústica e historias contadas por la Abuela Olga.' : 'Fresh seafood BBQ grill, acoustic guitar campfire, and storytelling by Abuela Olga.', location: lang === 'es' ? 'Área de Fogata en la Playa' : 'Beach Bonfire Area' }
+                { time: '07:00 PM – 09:00 PM', title: lang === 'es' ? 'Noche de Talentos' : 'Talent Show!', desc: lang === 'es' ? 'Los primos demuestran sus talentos: Musica, bailes, etc.' : 'The cousins display their talents: music, dance, comedy, etc ', location: lang === 'es' ? 'Centro de Convenciones' : 'Convention Center' }
             ]
         },
         {
