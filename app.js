@@ -839,7 +839,7 @@ function App() {
                             </div>
 
                             <p className="text-xs text-tropical-200 mt-4 italic border-t border-tropical-800/80 pt-3">
-                                "{t.matriarchNote || (lang === 'es' ? 'Corazón y Alma de la Familia Mandujano' : 'Heart & Soul of the Mandujano Family')}"
+                                "{t.matriarchNote}"
                             </p>
                         </div>
                     </div>
