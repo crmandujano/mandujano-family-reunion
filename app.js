@@ -3623,7 +3623,7 @@ function MerchView({ familyData, showToast, t }) {
                                         <div>
                                             <p className="text-xs font-bold text-slate-900 line-clamp-1">{item.name}</p>
                                             <p className="text-[10px] text-slate-500 font-medium">
-                                                {item.qty}x {item.size !== 'Standard' ? `• Size: ${item.size}` : ''} • {item.color}
+                                                {item.qty}x {item.size !== 'Standard' ? `• Size: ${item.size}` : ''}
                                             </p>
                                         </div>
                                         <div className="flex items-center space-x-2 shrink-0">
