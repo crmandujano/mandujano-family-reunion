@@ -1104,11 +1104,8 @@ function SymmetricalTreeView({ familyData, onSelectSibling, onUpdatePhoto, t }) 
                 </div>
             </div>
 
-            <div className="relative bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 overflow-x-auto custom-scrollbar">
-                <div className="flex items-center justify-center mb-6">
-                    <div className="h-8 w-0.5 bg-gradient-to-b from-amber-400 to-tropical-500"></div>
-                </div>
-
+                <div className="relative bg-white/80 backdrop-blur rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-200 overflow-x-auto custom-scrollbar">
+                        
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                     <div className="space-y-4">
                         <div className="bg-gradient-to-r from-pink-500 to-rose-500 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider text-center shadow flex items-center justify-center gap-2">
