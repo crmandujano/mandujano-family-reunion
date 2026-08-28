@@ -1464,7 +1464,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, 
                                             photo: sibling.spousePhoto || '',
                                             relationship: `Spouse of ${sibling.name}`
                                         }} 
-                                        onUpdatePhoto={updatePersonPhoto} 
+                                        onUpdatePhoto={onUpdatePhoto} 
                                         onOpenPreview={onOpenPreview}
                                         size="lg" 
                                         gender={sibling.type === 'sister' ? 'male' : 'female'}
@@ -1932,7 +1932,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, 
                                     <select 
                                         value={new4thGender}
                                         onChange={(e) => setNew4thGender(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white font-medium"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white"
                                     >
                                         <option value="female">Female</option>
                                         <option value="male">Male</option>
