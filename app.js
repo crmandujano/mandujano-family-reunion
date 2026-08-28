@@ -1229,50 +1229,16 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, onOpenPreview, t
                     #{sibling.order}
                 </div>
 
-                <div className="flex items-center flex-wrap gap-4 sm:gap-6">
-                        {/* Sibling Avatar */}
-                        <div className="flex flex-col items-center">
-                            <UniversalAvatar 
-                                person={sibling} 
-                                onUpdatePhoto={onUpdatePhoto} 
-                                onOpenPreview={onOpenPreview}
-                                size="lg" 
-                                gender={sibling.type === 'sister' ? 'female' : 'male'}
-                            />
-                            <span className="text-[10px] text-tropical-300 font-semibold mt-1">
-                                {sibling.type === 'sister' ? 'Sister' : 'Brother'}
-                            </span>
-                        </div>
+                <UniversalAvatar 
+                    person={sibling} 
+                    onUpdatePhoto={onUpdatePhoto} 
+                    onOpenPreview={onOpenPreview}
+                    size="md" 
+                    gender={type === 'sister' ? 'female' : 'male'}
+                />
 
-                        {/* Spouse Avatar (if spouse exists) */}
-                        {sibling.spouse && (
-                            <>
-                                <div className="text-amber-400 font-serif-title text-xl font-bold">
-                                    &
-                                </div>
-                                <div className="flex flex-col items-center">
-                                    <UniversalAvatar 
-                                        person={{
-                                            id: `${sibling.id}-spouse`,
-                                            name: sibling.spouse,
-                                            photo: sibling.spousePhoto || '',
-                                            relationship: `Spouse of ${sibling.name}`
-                                        }} 
-                                        onUpdatePhoto={onUpdatePhoto} 
-                                        onOpenPreview={onOpenPreview}
-                                        size="lg" 
-                                        gender={sibling.type === 'sister' ? 'male' : 'female'}
-                                    />
-                                    <span className="text-[10px] text-pink-300 font-semibold mt-1">
-                                        Spouse / Partner
-                                    </span>
-                                </div>
-                            </>
-                        )}
-
-                        <div className="flex-1 min-w-[200px]">
-
-                        <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2 truncate">
+                <div className="min-w-0 flex-1">
+                    <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2 truncate">
                         <span className="truncate">{sibling.name}</span>
                         {sibling.whatsapp && (
                             <a 
@@ -1467,15 +1433,50 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, 
                             <i className="fa-solid fa-xmark text-base"></i>
                         </button>
                     </div>
-                    <div className="flex items-center space-x-4">
-                        <UniversalAvatar 
-                            person={sibling} 
-                            onUpdatePhoto={onUpdatePhoto} 
-                            onOpenPreview={onOpenPreview}
-                            size="lg" 
-                            gender={sibling.type === 'sister' ? 'female' : 'male'}
-                        />
-                        <div className="flex-1">
+
+                    {/* SIBLING & SPOUSE HEADER AVATARS */}
+                    <div className="flex items-center flex-wrap gap-4 sm:gap-6">
+                        {/* Sibling Avatar */}
+                        <div className="flex flex-col items-center">
+                            <UniversalAvatar 
+                                person={sibling} 
+                                onUpdatePhoto={onUpdatePhoto} 
+                                onOpenPreview={onOpenPreview}
+                                size="lg" 
+                                gender={sibling.type === 'sister' ? 'female' : 'male'}
+                            />
+                            <span className="text-[10px] text-tropical-300 font-semibold mt-1">
+                                {sibling.type === 'sister' ? 'Sister' : 'Brother'}
+                            </span>
+                        </div>
+
+                        {/* Spouse Avatar (if spouse exists) */}
+                        {sibling.spouse && (
+                            <>
+                                <div className="text-amber-400 font-serif-title text-xl font-bold">
+                                    &
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <UniversalAvatar 
+                                        person={{
+                                            id: `${sibling.id}-spouse`,
+                                            name: sibling.spouse,
+                                            photo: sibling.spousePhoto || '',
+                                            relationship: `Spouse of ${sibling.name}`
+                                        }} 
+                                        onUpdatePhoto={updatePersonPhoto} 
+                                        onOpenPreview={onOpenPreview}
+                                        size="lg" 
+                                        gender={sibling.type === 'sister' ? 'male' : 'female'}
+                                    />
+                                    <span className="text-[10px] text-pink-300 font-semibold mt-1">
+                                        Spouse / Partner
+                                    </span>
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex-1 min-w-[200px]">
                             <div className="flex items-center space-x-2">
                                 <span className="bg-amber-400 text-slate-900 text-xs font-bold px-2 py-0.5 rounded">
                                     Sibling #{sibling.order}
@@ -1931,7 +1932,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, 
                                     <select 
                                         value={new4thGender}
                                         onChange={(e) => setNew4thGender(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white font-medium"
                                     >
                                         <option value="female">Female</option>
                                         <option value="male">Male</option>
@@ -2237,6 +2238,7 @@ function DirectoryView({ familyData, searchQuery, setSearchQuery, onUpdatePhoto,
                 photo: sib.photo,
                 relationship: `2nd Gen (${sib.type === 'sister' ? 'Sister' : 'Brother'} #${sib.order})`,
                 spouse: sib.spouse,
+                spousePhoto: sib.spousePhoto,
                 whatsapp: sib.whatsapp,
                 siblingId: sib.id
             });
