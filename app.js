@@ -752,13 +752,17 @@ function App() {
                                     <i className="fa-solid fa-crown text-amber-400"></i>
                                     {t.legacyTitle}
                                 </h2>
+                               
+                                {/*
                                 <button 
                                     onClick={handleResetData}
                                     title="Restore default seed data"
                                     className="text-xs text-tropical-300 hover:text-white transition flex items-center gap-1"
-                                >
+                                    >
                                     <i className="fa-solid fa-rotate-left"></i> {t.resetSeed}
                                 </button>
+                            */}
+
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <div className="bg-slate-900/80 backdrop-blur border border-tropical-700/40 rounded-xl p-3 text-center shadow-lg hover:border-tropical-500/50 transition">
