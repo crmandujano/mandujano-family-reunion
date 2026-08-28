@@ -1229,16 +1229,50 @@ function SiblingCard({ sibling, onSelectSibling, onUpdatePhoto, onOpenPreview, t
                     #{sibling.order}
                 </div>
 
-                <UniversalAvatar 
-                    person={sibling} 
-                    onUpdatePhoto={onUpdatePhoto} 
-                    onOpenPreview={onOpenPreview}
-                    size="md" 
-                    gender={type === 'sister' ? 'female' : 'male'}
-                />
+                <div className="flex items-center flex-wrap gap-4 sm:gap-6">
+                        {/* Sibling Avatar */}
+                        <div className="flex flex-col items-center">
+                            <UniversalAvatar 
+                                person={sibling} 
+                                onUpdatePhoto={onUpdatePhoto} 
+                                onOpenPreview={onOpenPreview}
+                                size="lg" 
+                                gender={sibling.type === 'sister' ? 'female' : 'male'}
+                            />
+                            <span className="text-[10px] text-tropical-300 font-semibold mt-1">
+                                {sibling.type === 'sister' ? 'Sister' : 'Brother'}
+                            </span>
+                        </div>
 
-                <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2 truncate">
+                        {/* Spouse Avatar (if spouse exists) */}
+                        {sibling.spouse && (
+                            <>
+                                <div className="text-amber-400 font-serif-title text-xl font-bold">
+                                    &
+                                </div>
+                                <div className="flex flex-col items-center">
+                                    <UniversalAvatar 
+                                        person={{
+                                            id: `${sibling.id}-spouse`,
+                                            name: sibling.spouse,
+                                            photo: sibling.spousePhoto || '',
+                                            relationship: `Spouse of ${sibling.name}`
+                                        }} 
+                                        onUpdatePhoto={onUpdatePhoto} 
+                                        onOpenPreview={onOpenPreview}
+                                        size="lg" 
+                                        gender={sibling.type === 'sister' ? 'male' : 'female'}
+                                    />
+                                    <span className="text-[10px] text-pink-300 font-semibold mt-1">
+                                        Spouse / Partner
+                                    </span>
+                                </div>
+                            </>
+                        )}
+
+                        <div className="flex-1 min-w-[200px]">
+
+                        <h4 className="font-bold text-slate-900 group-hover:text-tropical-700 transition-colors text-sm sm:text-base flex items-center gap-2 truncate">
                         <span className="truncate">{sibling.name}</span>
                         {sibling.whatsapp && (
                             <a 
