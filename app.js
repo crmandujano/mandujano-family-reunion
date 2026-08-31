@@ -752,17 +752,16 @@ function App() {
                                     <i className="fa-solid fa-crown text-amber-400"></i>
                                     {t.legacyTitle}
                                 </h2>
-                               
+                                {/* Reset seed commented out for production stability */}
                                 {/*
                                 <button 
                                     onClick={handleResetData}
                                     title="Restore default seed data"
                                     className="text-xs text-tropical-300 hover:text-white transition flex items-center gap-1"
-                                    >
+                                >
                                     <i className="fa-solid fa-rotate-left"></i> {t.resetSeed}
                                 </button>
-                            */}
-
+                                */}
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                 <div className="bg-slate-900/80 backdrop-blur border border-tropical-700/40 rounded-xl p-3 text-center shadow-lg hover:border-tropical-500/50 transition">
@@ -1045,33 +1044,194 @@ function CountdownTimer({ targetDate }) {
     );
 }
 
-// --- UNIVERSAL AVATAR WITH PHOTO PREVIEW & TOUCH UPLOAD ---
+// --- INTERACTIVE AVATAR CROPPER MODAL (HTML5 Canvas Zero-Dependency) ---
+function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
+    const [zoom, setZoom] = useState(1);
+    const [offset, setOffset] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const imgRef = useRef(null);
+
+    const handleMouseDown = (e) => {
+        setIsDragging(true);
+        setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+    };
+
+    const handleMouseMove = (e) => {
+        if (!isDragging) return;
+        setOffset({
+            x: e.clientX - dragStart.x,
+            y: e.clientY - dragStart.y
+        });
+    };
+
+    const handleMouseUp = () => setIsDragging(false);
+
+    // Touch support for mobile phones
+    const handleTouchStart = (e) => {
+        if (e.touches.length === 1) {
+            setIsDragging(true);
+            setDragStart({
+                x: e.touches[0].clientX - offset.x,
+                y: e.touches[0].clientY - offset.y
+            });
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        setOffset({
+            x: e.touches[0].clientX - dragStart.x,
+            y: e.touches[0].clientY - dragStart.y
+        });
+    };
+
+    const handleSaveCrop = () => {
+        const image = imgRef.current;
+        if (!image) return;
+
+        const canvas = document.createElement('canvas');
+        const OUTPUT_SIZE = 500; // 500x500 high-res web-optimized avatar
+        canvas.width = OUTPUT_SIZE;
+        canvas.height = OUTPUT_SIZE;
+        const ctx = canvas.getContext('2d');
+
+        const previewBoxSize = 250; // container size in modal
+        const scaleFactor = OUTPUT_SIZE / previewBoxSize;
+
+        const displayWidth = image.width * zoom;
+        const displayHeight = image.height * zoom;
+
+        // Draw cropped and transformed viewport area onto canvas
+        ctx.drawImage(
+            image,
+            (offset.x + (previewBoxSize - displayWidth) / 2) * scaleFactor,
+            (offset.y + (previewBoxSize - displayHeight) / 2) * scaleFactor,
+            displayWidth * scaleFactor,
+            displayHeight * scaleFactor
+        );
+
+        canvas.toBlob((blob) => {
+            onCropComplete(blob, canvas.toDataURL('image/jpeg', 0.88));
+        }, 'image/jpeg', 0.88);
+    };
+
+    return (
+        <div className="fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-white shadow-2xl animate-in zoom-in-95">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <h3 className="text-base font-bold font-serif-title flex items-center gap-2">
+                        <i className="fa-solid fa-crop-simple text-amber-400"></i> Frame Profile Photo
+                    </h3>
+                    <button onClick={onCancel} className="text-slate-400 hover:text-white">
+                        <i className="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <p className="text-xs text-slate-400 text-center mb-3">
+                    Drag and zoom to center the face inside the circle.
+                </p>
+
+                {/* Viewport Mask Box */}
+                <div 
+                    className="relative w-[250px] h-[250px] mx-auto rounded-full overflow-hidden border-4 border-amber-400 shadow-2xl bg-black cursor-move flex items-center justify-center select-none touch-none"
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseUp}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleMouseUp}
+                >
+                    <img 
+                        ref={imgRef}
+                        src={imageSrc} 
+                        alt="Crop target" 
+                        draggable={false}
+                        style={{
+                            transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom})`,
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain',
+                            pointerEvents: 'none',
+                            transition: isDragging ? 'none' : 'transform 0.05s ease-out'
+                        }}
+                    />
+                </div>
+
+                {/* Zoom Slider */}
+                <div className="mt-5 space-y-1">
+                    <div className="flex justify-between text-xs text-slate-400">
+                        <span><i className="fa-solid fa-magnifying-glass-minus mr-1"></i> Zoom Out</span>
+                        <span><i className="fa-solid fa-magnifying-glass-plus mr-1"></i> Zoom In</span>
+                    </div>
+                    <input 
+                        type="range" 
+                        min="1" 
+                        max="3.5" 
+                        step="0.05"
+                        value={zoom}
+                        onChange={(e) => setZoom(parseFloat(e.target.value))}
+                        className="w-full accent-amber-400 cursor-pointer"
+                    />
+                </div>
+
+                {/* Modal Actions */}
+                <div className="grid grid-cols-2 gap-2 mt-6">
+                    <button 
+                        type="button"
+                        onClick={onCancel}
+                        className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        type="button"
+                        onClick={handleSaveCrop}
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 shadow transition"
+                    >
+                        Save & Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// --- UNIVERSAL AVATAR WITH INTEGRATED IN-BROWSER CROPPER & TOUCH UPLOAD ---
 function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', className = '', gender = 'female' }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
+    const [rawImageSource, setRawImageSource] = useState(null);
 
-    const handleFileChange = async (e) => {
+    const handleFileChange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        if (file.size > 8 * 1024 * 1024) {
-            alert('Please select an image smaller than 8MB.');
+        if (file.size > 12 * 1024 * 1024) {
+            alert('Please select an image smaller than 12MB.');
             return;
         }
 
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setRawImageSource(ev.target.result);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleCropComplete = async (croppedBlob, croppedDataUrl) => {
+        setRawImageSource(null);
         try {
             setUploading(true);
             if (window.storage) {
-                const storageRef = window.storage.ref(`avatars/${person.id}_${Date.now()}_${file.name}`);
-                const snapshot = await storageRef.put(file);
+                const storageRef = window.storage.ref(`avatars/${person.id}_${Date.now()}.jpg`);
+                const snapshot = await storageRef.put(croppedBlob);
                 const downloadURL = await snapshot.ref.getDownloadURL();
                 onUpdatePhoto(person.id, downloadURL);
             } else {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    onUpdatePhoto(person.id, event.target.result);
-                };
-                reader.readAsDataURL(file);
+                onUpdatePhoto(person.id, croppedDataUrl);
             }
             setUploading(false);
         } catch (err) {
@@ -1114,6 +1274,7 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                 <img 
                     src={imgSrc} 
                     alt={person.name} 
+                    style={{ objectPosition: '50% 20%' }}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300" 
                 />
                 
@@ -1138,6 +1299,15 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                 >
                     <i className="fa-solid fa-camera"></i>
                 </button>
+            )}
+
+            {/* Crop Dialog Pop-Up */}
+            {rawImageSource && (
+                <AvatarCropperModal 
+                    imageSrc={rawImageSource}
+                    onCropComplete={handleCropComplete}
+                    onCancel={() => setRawImageSource(null)}
+                />
             )}
         </div>
     );
@@ -3564,7 +3734,7 @@ function ScheduleView({ t, lang }) {
             badge: lang === 'es' ? 'Día 3' : 'Day 3',
             events: [
                 { time: '11:00 AM – 03:00 PM', title: lang === 'es' ? 'Olímpiadas Playeras Mandujano y Parque Acuático' : 'Mandujano Family Beach Olympics & Waterpark', desc: lang === 'es' ? 'Torneo de voleibol, búsqueda del tesoro para niños, juego de la cuerda y fiesta en la piscina.' : 'Volleyball tournament, kids treasure hunt, tug-of-war, and pool party.', location: lang === 'es' ? 'Frente a la Playa' : 'La Ensenada Beachfront' },
-                { time: '06:00 PM – 09:00 PM', title: lang === 'es' ? 'Show de Telentos!' : 'Talent Show!', desc: lang === 'es' ? 'Los primos demuestran sus talentos: Musica, Bailes, etc.' : 'The cousins display their talents: Music, Dances, etc.', location: lang === 'es' ? 'Centro de Convenciones' : 'Convention Center' }
+                { time: '06:00 PM – 09:00 PM', title: lang === 'es' ? 'BBQ Caribeño y Fogata con Guitarra' : 'Caribbean BBQ & Campfire Sing-Along', desc: lang === 'es' ? 'Parrillada de mariscos frescos, fogata con guitarra acústica e historias contadas por la Abuela Olga.' : 'Fresh seafood BBQ grill, acoustic guitar campfire, and storytelling by Abuela Olga.', location: lang === 'es' ? 'Área de Fogata en la Playa' : 'Beach Bonfire Area' }
             ]
         },
         {
