@@ -1198,7 +1198,7 @@ function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
     );
 }
 
-// --- UNIVERSAL AVATAR WITH INTEGRATED IN-BROWSER CROPPER & TOUCH UPLOAD ---
+// --- UNIVERSAL AVATAR WITH PROPORTIONAL CAMERA BADGE & CROPPER ---
 function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', className = '', gender = 'female' }) {
     const fileInputRef = useRef(null);
     const [uploading, setUploading] = useState(false);
@@ -1242,16 +1242,24 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
     };
 
     const sizeClasses = {
-        sm: 'w-10 h-10 text-xs',
-        md: 'w-16 h-16 text-sm',
-        lg: 'w-24 h-24 text-base',
-        xl: 'w-28 h-28 text-lg'
+        sm: 'w-10 h-10',
+        md: 'w-16 h-16',
+        lg: 'w-24 h-24',
+        xl: 'w-28 h-28'
+    };
+
+    // Scaled and offset badge styles per avatar size
+    const badgeSizeClasses = {
+        sm: 'w-4 h-4 text-[8px] -bottom-0.5 -right-0.5 border',
+        md: 'w-5 h-5 text-[10px] -bottom-0.5 -right-0.5 border',
+        lg: 'w-7 h-7 text-xs bottom-0 right-0 border-2',
+        xl: 'w-8 h-8 text-sm bottom-0 right-0 border-2'
     };
 
     const imgSrc = person.photo || getDefaultAvatar(person.name, gender);
 
     return (
-        <div className={`relative group inline-block ${className}`}>
+        <div className={`relative inline-flex items-center justify-center shrink-0 ${className}`}>
             <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -1260,7 +1268,7 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                 className="hidden" 
             />
 
-            {/* Click to blow up photo */}
+            {/* Clickable Avatar Container */}
             <div 
                 onClick={(e) => {
                     e.stopPropagation();
@@ -1269,7 +1277,7 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                     }
                 }}
                 title="Click to view full photo"
-                className={`${sizeClasses[size] || sizeClasses.md} rounded-full overflow-hidden border-2 border-amber-400/80 shadow-md relative bg-slate-200 flex-shrink-0 cursor-pointer hover:ring-2 hover:ring-amber-300 transition`}
+                className={`${sizeClasses[size] || sizeClasses.md} rounded-full overflow-hidden border-2 border-amber-400/80 shadow-md relative bg-slate-200 cursor-pointer hover:ring-2 hover:ring-amber-300 transition group`}
             >
                 <img 
                     src={imgSrc} 
@@ -1280,12 +1288,12 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                 
                 {uploading && (
                     <div className="absolute inset-0 bg-slate-900/70 text-white flex flex-col items-center justify-center backdrop-blur-[1px]">
-                        <i className="fa-solid fa-spinner fa-spin text-amber-300 text-base"></i>
+                        <i className="fa-solid fa-spinner fa-spin text-amber-300 text-xs"></i>
                     </div>
                 )}
             </div>
 
-            {/* Camera Upload Badge */}
+            {/* Scaled & Offset Camera Badge */}
             {onUpdatePhoto && (
                 <button
                     type="button"
@@ -1295,13 +1303,13 @@ function UniversalAvatar({ person, onUpdatePhoto, onOpenPreview, size = 'md', cl
                         if (fileInputRef.current) fileInputRef.current.click();
                     }}
                     title="Change Photo"
-                    className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-slate-900/95 hover:bg-amber-500 text-amber-400 hover:text-slate-900 border-2 border-amber-300 flex items-center justify-center text-xs shadow-lg hover:scale-110 active:scale-95 transition z-10 cursor-pointer"
+                    className={`absolute ${badgeSizeClasses[size] || badgeSizeClasses.md} rounded-full bg-slate-900 hover:bg-amber-500 text-amber-400 hover:text-slate-900 border-amber-300 flex items-center justify-center shadow-md hover:scale-110 active:scale-95 transition z-10 cursor-pointer`}
                 >
                     <i className="fa-solid fa-camera"></i>
                 </button>
             )}
 
-            {/* Crop Dialog Pop-Up */}
+            {/* In-Browser Framing & Crop Dialog */}
             {rawImageSource && (
                 <AvatarCropperModal 
                     imageSrc={rawImageSource}
