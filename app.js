@@ -56,26 +56,18 @@ function App() {
 
         const unsubs = [];
 
-        // A. Family Tree Lineage Listener
+        // A. Family Tree Lineage Listener (Safe Mode - No Overwrites)
         const treeRef = window.db.collection('reunion').doc('familyTree');
         unsubs.push(
             treeRef.onSnapshot((docSnap) => {
-                if (docSnap.exists) {
-                    const data = docSnap.data();
-                    setFamilyTree({
-                        patriarch: data.patriarch || INITIAL_FAMILY_DATA.patriarch,
-                        matriarch: data.matriarch || INITIAL_FAMILY_DATA.matriarch,
-                        sisters: data.sisters || INITIAL_FAMILY_DATA.sisters,
-                        brothers: data.brothers || INITIAL_FAMILY_DATA.brothers
+                if (docSnap && docSnap.exists) {
+                const data = docSnap.data();
+                setFamilyTree({
+                    patriarch: data.patriarch || INITIAL_FAMILY_DATA.patriarch,
+                    matriarch: data.matriarch || INITIAL_FAMILY_DATA.matriarch,
+                    sisters: data.sisters || INITIAL_FAMILY_DATA.sisters,
+                    brothers: data.brothers || INITIAL_FAMILY_DATA.brothers
                     });
-                } else {
-                    // Seed lineage data on initial deployment
-                    treeRef.set({
-                        patriarch: INITIAL_FAMILY_DATA.patriarch,
-                        matriarch: INITIAL_FAMILY_DATA.matriarch,
-                        sisters: INITIAL_FAMILY_DATA.sisters,
-                        brothers: INITIAL_FAMILY_DATA.brothers
-                    }).catch(console.error);
                 }
             }, (err) => console.error("Tree sync error:", err))
         );
