@@ -1036,7 +1036,7 @@ function CountdownTimer({ targetDate }) {
     );
 }
 
-// --- INTERACTIVE AVATAR CROPPER MODAL (HTML5 Canvas Zero-Dependency) ---
+// --- INTERACTIVE AVATAR CROPPER MODAL (FIT-TO-VIEWPORT GUARANTEED) ---
 function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
     const [zoom, setZoom] = useState(1);
     const [offset, setOffset] = useState({ x: 0, y: 0 });
@@ -1083,18 +1083,17 @@ function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
         if (!image) return;
 
         const canvas = document.createElement('canvas');
-        const OUTPUT_SIZE = 500; // 500x500 high-res web-optimized avatar
+        const OUTPUT_SIZE = 500;
         canvas.width = OUTPUT_SIZE;
         canvas.height = OUTPUT_SIZE;
         const ctx = canvas.getContext('2d');
 
-        const previewBoxSize = 250; // container size in modal
+        const previewBoxSize = 220; // Matches circle width/height below
         const scaleFactor = OUTPUT_SIZE / previewBoxSize;
 
         const displayWidth = image.width * zoom;
         const displayHeight = image.height * zoom;
 
-        // Draw cropped and transformed viewport area onto canvas
         ctx.drawImage(
             image,
             (offset.x + (previewBoxSize - displayWidth) / 2) * scaleFactor,
@@ -1109,24 +1108,26 @@ function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
     };
 
     return (
-        <div className="fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-6 text-white shadow-2xl animate-in zoom-in-95">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-                    <h3 className="text-base font-bold font-serif-title flex items-center gap-2">
+        <div className="fixed inset-0 z-[110] bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-sm w-full p-4 sm:p-5 text-white shadow-2xl animate-in zoom-in-95 my-auto max-h-[92vh] flex flex-col justify-between">
+                
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-2">
+                    <h3 className="text-sm sm:text-base font-bold font-serif-title flex items-center gap-2">
                         <i className="fa-solid fa-crop-simple text-amber-400"></i> Frame Profile Photo
                     </h3>
-                    <button onClick={onCancel} className="text-slate-400 hover:text-white">
-                        <i className="fa-solid fa-xmark"></i>
+                    <button onClick={onCancel} className="text-slate-400 hover:text-white p-1">
+                        <i className="fa-solid fa-xmark text-lg"></i>
                     </button>
                 </div>
 
-                <p className="text-xs text-slate-400 text-center mb-3">
-                    Drag and zoom to center the face inside the circle.
+                <p className="text-[11px] text-slate-400 text-center mb-2.5">
+                    Drag photo & use slider to position face inside circle.
                 </p>
 
-                {/* Viewport Mask Box */}
+                {/* Viewport Mask Box (220px square circle) */}
                 <div 
-                    className="relative w-[250px] h-[250px] mx-auto rounded-full overflow-hidden border-4 border-amber-400 shadow-2xl bg-black cursor-move flex items-center justify-center select-none touch-none"
+                    className="relative w-[220px] h-[220px] mx-auto rounded-full overflow-hidden border-4 border-amber-400 shadow-2xl bg-black cursor-move flex items-center justify-center select-none touch-none shrink-0"
                     onMouseDown={handleMouseDown}
                     onMouseMove={handleMouseMove}
                     onMouseUp={handleMouseUp}
@@ -1152,8 +1153,8 @@ function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
                 </div>
 
                 {/* Zoom Slider */}
-                <div className="mt-5 space-y-1">
-                    <div className="flex justify-between text-xs text-slate-400">
+                <div className="mt-3 px-2 space-y-1">
+                    <div className="flex justify-between text-[11px] text-slate-400 font-medium">
                         <span><i className="fa-solid fa-magnifying-glass-minus mr-1"></i> Zoom Out</span>
                         <span><i className="fa-solid fa-magnifying-glass-plus mr-1"></i> Zoom In</span>
                     </div>
@@ -1164,23 +1165,23 @@ function AvatarCropperModal({ imageSrc, onCropComplete, onCancel }) {
                         step="0.05"
                         value={zoom}
                         onChange={(e) => setZoom(parseFloat(e.target.value))}
-                        className="w-full accent-amber-400 cursor-pointer"
+                        className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-700 rounded-lg appearance-none"
                     />
                 </div>
 
-                {/* Modal Actions */}
-                <div className="grid grid-cols-2 gap-2 mt-6">
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 gap-2 mt-4 pt-2 border-t border-slate-800">
                     <button 
                         type="button"
                         onClick={onCancel}
-                        className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition"
+                        className="px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 transition"
                     >
                         Cancel
                     </button>
                     <button 
                         type="button"
                         onClick={handleSaveCrop}
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 shadow transition"
+                        className="px-3 py-2 rounded-xl text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-500 shadow transition"
                     >
                         Save & Upload
                     </button>
