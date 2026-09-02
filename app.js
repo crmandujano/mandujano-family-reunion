@@ -62,12 +62,12 @@ function App() {
         unsubs.push(
             treeRef.onSnapshot((docSnap) => {
                 if (docSnap && docSnap.exists) {
-                const data = docSnap.data();
-                setFamilyTree({
-                    patriarch: data.patriarch || INITIAL_FAMILY_DATA.patriarch,
-                    matriarch: data.matriarch || INITIAL_FAMILY_DATA.matriarch,
-                    sisters: data.sisters || INITIAL_FAMILY_DATA.sisters,
-                    brothers: data.brothers || INITIAL_FAMILY_DATA.brothers
+                    const data = docSnap.data();
+                    setFamilyTree({
+                        patriarch: data.patriarch || INITIAL_FAMILY_DATA.patriarch,
+                        matriarch: data.matriarch || INITIAL_FAMILY_DATA.matriarch,
+                        sisters: data.sisters || INITIAL_FAMILY_DATA.sisters,
+                        brothers: data.brothers || INITIAL_FAMILY_DATA.brothers
                     });
                 }
             }, (err) => console.error("Tree sync error:", err))
@@ -1008,6 +1008,9 @@ function App() {
                 isOpen={isBackupModalOpen} 
                 onClose={() => setIsBackupModalOpen(false)} 
             />
+        </div>
+    );
+}
 
 // --- COUNTDOWN TIMER COMPONENT ---
 function CountdownTimer({ targetDate }) {
@@ -2126,7 +2129,7 @@ function BranchDrillDownModal({ sibling, onClose, onUpdatePhoto, onOpenPreview, 
                                     <select 
                                         value={new4thGender}
                                         onChange={(e) => setNew4thGender(e.target.value)}
-                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white"
+                                        className="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none bg-white font-medium"
                                     >
                                         <option value="female">Female</option>
                                         <option value="male">Male</option>
@@ -4119,6 +4122,7 @@ function MerchView({ familyData, showToast, t }) {
         </div>
     );
 }
+
 // --- DATABASE BACKUP & RESTORE UTILITIES ---
 const BackupManager = {
     // 1. Export All Firestore Collections to a Local JSON File
@@ -4227,6 +4231,7 @@ const BackupManager = {
         reader.readAsText(file);
     }
 };
+
 function AdminBackupModal({ isOpen, onClose }) {
     const fileInputRef = useRef(null);
 
@@ -4301,6 +4306,7 @@ function AdminBackupModal({ isOpen, onClose }) {
         </div>
     );
 }
+
 // Render application
 const ReactDOMObj = window.ReactDOM || ReactDOM;
 const root = ReactDOMObj.createRoot(document.getElementById('root'));
