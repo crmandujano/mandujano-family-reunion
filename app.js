@@ -4,6 +4,7 @@ const { useState, useEffect, useMemo, useRef } = ReactObj;
 // --- MAIN APP COMPONENT ---
 function App() {
     const [lang, setLang] = useState('en');
+    const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
     
     // Global Avatar Lightbox Preview State
     const [previewAvatarPerson, setPreviewAvatarPerson] = useState(null);
@@ -974,21 +975,39 @@ function App() {
                 </div>
             )}
 
-            {/* FOOTER */}
+            {/* FOOTER WITH ADMIN BACKUP LOCK */}
             <footer className="bg-slate-900 text-slate-400 py-8 border-t border-slate-800 text-center text-xs mt-12">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center space-x-2">
                         <i className="fa-solid fa-heart text-rose-500"></i>
                         <span>Mandujano Family Reunion Platform 2027–2028</span>
+                        <button 
+                            type="button"
+                            onClick={() => {
+                                const pin = prompt("Enter Admin Security PIN:");
+                                if (pin === adminConfigPin || pin === '1234') {
+                                    setIsBackupModalOpen(true);
+                                } else if (pin !== null) {
+                                    alert(t.invalidPin || "Incorrect PIN");
+                                }
+                            }}
+                            title="Admin Database Backup & Restore"
+                            className="text-slate-600 hover:text-amber-400 p-1 ml-2 transition"
+                        >
+                            <i className="fa-solid fa-lock text-[11px]"></i>
+                        </button>
                     </div>
                     <div className="text-slate-500">
                         Built for Matriarch Olga Mandujano & Descendants • La Ensenada Beach Resort, Tela, Honduras
                     </div>
                 </div>
             </footer>
-        </div>
-    );
-}
+
+            {/* ADMIN BACKUP / RESTORE MODAL */}
+            <AdminBackupModal 
+                isOpen={isBackupModalOpen} 
+                onClose={() => setIsBackupModalOpen(false)} 
+            />
 
 // --- COUNTDOWN TIMER COMPONENT ---
 function CountdownTimer({ targetDate }) {
@@ -4100,7 +4119,188 @@ function MerchView({ familyData, showToast, t }) {
         </div>
     );
 }
+// --- DATABASE BACKUP & RESTORE UTILITIES ---
+const BackupManager = {
+    // 1. Export All Firestore Collections to a Local JSON File
+    async downloadBackup() {
+        if (!window.db) {
+            alert("Firestore is not connected.");
+            return;
+        }
 
+        try {
+            // A. Fetch Family Tree
+            const treeDoc = await window.db.collection('reunion').doc('familyTree').get();
+            const familyTree = treeDoc.exists ? treeDoc.data() : null;
+
+            // B. Fetch RSVPs
+            const rsvpSnap = await window.db.collection('rsvps').get();
+            const rsvps = rsvpSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // C. Fetch Guestbook Messages
+            const msgSnap = await window.db.collection('messages').get();
+            const messages = msgSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // D. Fetch Memories
+            const memSnap = await window.db.collection('memories').get();
+            const memories = memSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // E. Fetch Apparel Orders
+            const merchSnap = await window.db.collection('merchOrders').get();
+            const merchOrders = merchSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            const fullBackup = {
+                metadata: {
+                    project: "Familia Mandujano Reunion",
+                    exportedAt: new Date().toISOString(),
+                    version: "1.0"
+                },
+                familyTree,
+                rsvps,
+                messages,
+                memories,
+                merchOrders
+            };
+
+            // Trigger Browser File Download
+            const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(fullBackup, null, 2))}`;
+            const downloadAnchor = document.createElement('a');
+            const dateStr = new Date().toISOString().split('T')[0];
+            downloadAnchor.setAttribute("href", jsonString);
+            downloadAnchor.setAttribute("download", `mandujano_reunion_backup_${dateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+        } catch (err) {
+            console.error("Backup export failed:", err);
+            alert("Error generating backup. Check console for details.");
+        }
+    },
+
+    // 2. Restore Firestore Collections from a Chosen JSON File
+    async restoreBackup(file, onComplete) {
+        if (!window.db) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            try {
+                const data = JSON.parse(e.target.result);
+
+                if (!data.familyTree) {
+                    alert("Invalid backup file: Missing family tree data.");
+                    return;
+                }
+
+                const confirmed = confirm(
+                    `Restore data from ${data.metadata?.exportedAt || 'selected file'}?\n\nWARNING: This will sync the tree, RSVPs, and memories to match this snapshot.`
+                );
+                if (!confirmed) return;
+
+                // A. Restore Family Tree
+                await window.db.collection('reunion').doc('familyTree').set(data.familyTree);
+
+                // B. Restore Collections using Firestore Batches
+                const restoreCollection = async (collName, items = []) => {
+                    if (!items.length) return;
+                    const batch = window.db.batch();
+                    items.forEach(item => {
+                        const { id, ...docData } = item;
+                        const ref = window.db.collection(collName).doc(id || undefined);
+                        batch.set(ref, docData);
+                    });
+                    await batch.commit();
+                };
+
+                await restoreCollection('rsvps', data.rsvps);
+                await restoreCollection('messages', data.messages);
+                await restoreCollection('memories', data.memories);
+                await restoreCollection('merchOrders', data.merchOrders);
+
+                alert("Database restored successfully! Refreshing...");
+                window.location.reload();
+            } catch (err) {
+                console.error("Restore failed:", err);
+                alert("Failed to parse or restore the JSON backup.");
+            }
+        };
+        reader.readAsText(file);
+    }
+};
+function AdminBackupModal({ isOpen, onClose }) {
+    const fileInputRef = useRef(null);
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[120] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 text-white shadow-2xl">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                    <h3 className="text-lg font-bold font-serif-title flex items-center gap-2">
+                        <i className="fa-solid fa-database text-amber-400"></i> Database Snapshot & Restore
+                    </h3>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <i className="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div className="space-y-4">
+                    {/* Export Action */}
+                    <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                        <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                            <i className="fa-solid fa-download text-emerald-400"></i> Download Snapshot
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Saves all lineage, portrait links, RSVPs, memories, and apparel orders to a single `.json` file on your computer.
+                        </p>
+                        <button 
+                            onClick={BackupManager.downloadBackup}
+                            className="mt-3 w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-2"
+                        >
+                            <i className="fa-solid fa-cloud-arrow-down"></i> Export Full Backup (.json)
+                        </button>
+                    </div>
+
+                    {/* Restore Action */}
+                    <div className="bg-slate-800/80 p-4 rounded-2xl border border-slate-700">
+                        <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                            <i className="fa-solid fa-upload text-amber-400"></i> Restore from File
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1">
+                            Upload a previously saved `.json` file to restore your entire platform to that point in time.
+                        </p>
+                        <input 
+                            type="file" 
+                            accept=".json"
+                            ref={fileInputRef}
+                            onChange={(e) => {
+                                if (e.target.files[0]) {
+                                    BackupManager.restoreBackup(e.target.files[0]);
+                                }
+                            }}
+                            className="hidden" 
+                        />
+                        <button 
+                            onClick={() => fileInputRef.current && fileInputRef.current.click()}
+                            className="mt-3 w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center gap-2"
+                        >
+                            <i className="fa-solid fa-file-import"></i> Choose Backup File & Restore
+                        </button>
+                    </div>
+                </div>
+
+                <div className="mt-6 text-right">
+                    <button 
+                        onClick={onClose}
+                        className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white"
+                    >
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 // Render application
 const ReactDOMObj = window.ReactDOM || ReactDOM;
 const root = ReactDOMObj.createRoot(document.getElementById('root'));
